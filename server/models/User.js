@@ -17,7 +17,6 @@ const userSchema = new mongoose.Schema({
     enum: ['seeker', 'recruiter'],
     required: true
   },
-  // For job seekers
   profile: {
     name: String,
     phone: String,
@@ -34,18 +33,16 @@ const userSchema = new mongoose.Schema({
       description: String
     }],
     skills: [String],
-    resumeUri: String
+    resumeUri: String,
+    savedJobs: [String]
   },
-  // For recruiters
   companyName: String,
   companyDescription: String,
-  // Simple token for authentication
   token: String,
   postedJobs: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Job'
   }],
-  savedJobs: [String]
 }, {
   timestamps: true
 });
