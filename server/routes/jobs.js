@@ -1,16 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Job = require('../models/Job');
 const User = require('../models/User');
 
+function isDbConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
 // Helper to verify token
 async function verifyToken(token) {
+  if (!isDbConnected()) return null;
   return await User.findOne({ token });
 }
 
 // Get all jobs with filters
 router.get('/', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      const jobs = [];
+      return res.json(jobs);
+    }
+    
     const { search, category, jobType, salary } = req.query;
 
     let query = {};
@@ -41,6 +52,10 @@ router.get('/', async (req, res) => {
 // Get single job
 router.get('/:id', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const job = await Job.findById(req.params.id);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
@@ -54,6 +69,10 @@ router.get('/:id', async (req, res) => {
 // Create job (recruiter only)
 router.post('/', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     
     const user = await verifyToken(token);
@@ -88,6 +107,10 @@ router.post('/', async (req, res) => {
 // Update job (recruiter only)
 router.put('/:id', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     
     const user = await verifyToken(token);
@@ -115,6 +138,10 @@ router.put('/:id', async (req, res) => {
 // Delete job (recruiter only)
 router.delete('/:id', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     
     const user = await verifyToken(token);
@@ -136,6 +163,10 @@ router.delete('/:id', async (req, res) => {
 // Get recruiter's jobs
 router.get('/my-jobs', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     
     const user = await verifyToken(token);

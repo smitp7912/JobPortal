@@ -1,18 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const User = require('../models/User');
-
-const DB_CONNECTED = require('mongoose').connection.readyState === 1;
 
 // Generate simple token
 function generateToken() {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+// Check if database is connected
+function isDbConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
 // Register
 router.post('/register', async (req, res) => {
   try {
-    if (!DB_CONNECTED) {
+    if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected. Please try again later.' });
     }
     
@@ -65,7 +69,7 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    if (!DB_CONNECTED) {
+    if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected. Please try again later.' });
     }
     
@@ -105,7 +109,7 @@ router.post('/login', async (req, res) => {
 // Get user by token
 router.get('/me', async (req, res) => {
   try {
-    if (!DB_CONNECTED) {
+    if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected' });
     }
     
@@ -138,7 +142,7 @@ router.get('/me', async (req, res) => {
 // Update profile (for seekers)
 router.put('/profile', async (req, res) => {
   try {
-    if (!DB_CONNECTED) {
+    if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected' });
     }
     
@@ -176,7 +180,7 @@ router.put('/profile', async (req, res) => {
 // Logout
 router.post('/logout', async (req, res) => {
   try {
-    if (!DB_CONNECTED) {
+    if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected' });
     }
     

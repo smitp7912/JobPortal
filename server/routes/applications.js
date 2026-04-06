@@ -1,17 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const User = require('../models/User');
 
+function isDbConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
 // Helper to verify token
 async function verifyToken(token) {
+  if (!isDbConnected()) return null;
   return await User.findOne({ token });
 }
 
 // Get applications
 router.get('/', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     const { jobId, seekerId } = req.query;
     
@@ -54,6 +64,10 @@ router.get('/', async (req, res) => {
 // Apply for job
 router.post('/', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     const { jobId } = req.body;
     
@@ -109,6 +123,10 @@ router.post('/', async (req, res) => {
 // Update application status (recruiter only)
 router.put('/:id/status', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     const { status } = req.body;
     
@@ -146,6 +164,10 @@ router.put('/:id/status', async (req, res) => {
 // Get seeker profile (for recruiter)
 router.get('/seeker/:seekerId', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
     const { token } = req.headers;
     
     const user = await verifyToken(token);
