@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000'; // Use localhost for web testing
+const API_URL = 'https://jobportal-api-7p1p.onrender.com';
 
 // Helper to normalize MongoDB _id to id
 export const getJobId = (job) => {
