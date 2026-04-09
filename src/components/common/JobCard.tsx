@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, View, Image } from 'react-native';
+import { StyleSheet, TouchableOpacity, Text, View, Image, ActivityIndicator } from 'react-native';
 import { Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
+import { Tooltip } from './Tooltip';
 
 interface JobCardProps {
   job: Job;
@@ -9,6 +10,7 @@ interface JobCardProps {
   showApplyButton?: boolean;
   onApply?: () => void;
   isApplied?: boolean;
+  isApplying?: boolean;
   isSaved?: boolean;
   onSave?: () => void;
 }
@@ -19,6 +21,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   showApplyButton,
   onApply,
   isApplied,
+  isApplying,
   isSaved,
   onSave,
 }) => {
@@ -31,9 +34,11 @@ export const JobCard: React.FC<JobCardProps> = ({
           <Text style={styles.company}>{job.company}</Text>
         </View>
         {onSave && (
-          <TouchableOpacity onPress={onSave} style={styles.saveButton}>
-            <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
-          </TouchableOpacity>
+          <Tooltip tooltip={isSaved ? "Remove from saved jobs" : "Save this job for later"}>
+            <TouchableOpacity onPress={onSave} style={styles.saveButton}>
+              <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
+            </TouchableOpacity>
+          </Tooltip>
         )}
       </View>
 
@@ -49,13 +54,17 @@ export const JobCard: React.FC<JobCardProps> = ({
         <Text style={styles.postedDate}>Posted: {formatDate(job.postedDate)}</Text>
         {showApplyButton && onApply && (
           <TouchableOpacity 
-            style={[styles.applyButton, isApplied && styles.appliedButton]} 
+            style={[styles.applyButton, isApplied && styles.appliedButton, isApplying && styles.applyingButton]} 
             onPress={onApply}
-            disabled={isApplied}
+            disabled={isApplied || isApplying}
           >
-            <Text style={styles.applyButtonText}>
-              {isApplied ? 'Applied' : 'Apply Now'}
-            </Text>
+            {isApplying ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.applyButtonText}>
+                {isApplied ? 'Applied' : 'Apply Now'}
+              </Text>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -138,9 +147,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
+    minWidth: 80,
+    alignItems: 'center',
   },
   appliedButton: {
     backgroundColor: '#10B981',
+  },
+  applyingButton: {
+    backgroundColor: '#93C5FD',
   },
   applyButtonText: {
     color: '#fff',

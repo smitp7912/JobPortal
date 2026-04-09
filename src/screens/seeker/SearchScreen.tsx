@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../components/common/JobCard';
 import { useApp } from '../../context/AppContext';
 import { CATEGORIES, JOB_TYPES, SALARY_RANGES } from '../../data/constants';
+import { Tooltip } from '../../components/common/Tooltip';
 
 interface Props {
   navigation: any;
@@ -16,26 +17,38 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
   const [selectedSalary, setSelectedSalary] = useState<number | null>(null);
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = !searchQuery || 
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || job.category === selectedCategory;
-    const matchesJobType = !selectedJobType || job.jobType === selectedJobType;
-    return matchesSearch && matchesCategory && matchesJobType;
-  });
+  const filteredJobs = useMemo(() => 
+    jobs.filter(job => {
+      const matchesSearch = !searchQuery || 
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === null || selectedCategory === '' || job.category === selectedCategory;
+      const matchesJobType = !selectedJobType || job.jobType === selectedJobType;
+      return matchesSearch && matchesCategory && matchesJobType;
+    }), [jobs, searchQuery, selectedCategory, selectedJobType]
+  );
 
-  const hasApplied = (jobId: string) => {
-    return applications.some(app => app.jobId === jobId && app.seekerId === user?.id);
-  };
+  const hasApplied = useCallback((jobId: string) => 
+    applications.some(app => {
+      const appJobId = app.jobId?._id || app.jobId || app.jobId;
+      return appJobId === jobId && app.seekerId === user?.id;
+    }), [applications, user?.id]
+  );
 
-  const clearFilters = () => {
+  const handleApply = useCallback(async (jobId: string) => {
+    setApplyingJobId(jobId);
+    await applyForJob(jobId);
+    setApplyingJobId(null);
+  }, [applyForJob]);
+
+  const clearFilters = useCallback(() => {
     setSelectedCategory(null);
     setSelectedJobType(null);
     setSelectedSalary(null);
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,7 +65,9 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
           placeholderTextColor="#999"
         />
         <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(true)}>
-          <Text style={styles.filterIcon}>⚙️</Text>
+          <Tooltip tooltip="Open filter options">
+            <Text style={styles.filterIcon}>⚙️</Text>
+          </Tooltip>
         </TouchableOpacity>
       </View>
 
@@ -82,8 +97,9 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             job={item}
             onPress={() => navigation.navigate('JobDetails', { job: item })}
             showApplyButton
-            onApply={() => applyForJob(item.id)}
+            onApply={() => handleApply(item.id)}
             isApplied={hasApplied(item.id)}
+            isApplying={applyingJobId === item.id}
           />
         )}
         contentContainerStyle={styles.listContent}

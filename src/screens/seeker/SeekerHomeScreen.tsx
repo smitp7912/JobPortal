@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../components/common/JobCard';
@@ -13,23 +13,40 @@ export const SeekerHomeScreen: React.FC<Props> = ({ navigation }) => {
   const { jobs, user, applyForJob, applications, saveJob } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || job.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredJobs = useMemo(() => 
+    jobs.filter(job => {
+      const matchesSearch = !searchQuery || 
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === null || selectedCategory === '' || job.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    }), [jobs, searchQuery, selectedCategory]
+  );
 
-  const hasApplied = (jobId: string) => {
-    return applications.some(app => app.jobId === jobId && app.seekerId === user?.id);
-  };
+  const hasApplied = useCallback((jobId: string) => 
+    applications.some(app => {
+      const appJobId = app.jobId?._id || app.jobId || app.jobId;
+      return appJobId === jobId && app.seekerId === user?.id;
+    }), [applications, user?.id]
+  );
 
-  const isSaved = (jobId: string) => {
+  const handleApply = useCallback(async (jobId: string) => {
+    setApplyingJobId(jobId);
+    await applyForJob(jobId);
+    setApplyingJobId(null);
+  }, [applyForJob]);
+
+  const handleSave = useCallback(async (jobId: string) => {
+    await saveJob(jobId);
+  }, [saveJob]);
+
+  const isSaved = useCallback((jobId: string) => {
     const seeker = user?.profile;
     return seeker?.savedJobs?.includes(jobId);
-  };
+  }, [user?.profile]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,9 +92,11 @@ export const SeekerHomeScreen: React.FC<Props> = ({ navigation }) => {
             job={item}
             onPress={() => navigation.navigate('JobDetails', { job: item })}
             showApplyButton
-            onApply={() => applyForJob(item.id)}
+            onApply={() => handleApply(item.id)}
             isApplied={hasApplied(item.id)}
-            onSave={() => saveJob(item.id)}
+            isApplying={applyingJobId === item.id}
+            onSave={() => handleSave(item.id)}
+            isSaved={isSaved(item.id)}
           />
         )}
         contentContainerStyle={styles.listContent}

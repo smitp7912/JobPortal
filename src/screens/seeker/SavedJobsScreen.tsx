@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../components/common/JobCard';
@@ -9,8 +9,11 @@ interface Props {
 }
 
 export const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
-  const { jobs, getSavedJobs } = useApp();
-  const savedJobs = getSavedJobs();
+  const { user, getSavedJobs } = useApp();
+  
+  const savedJobs = useMemo(() => {
+    return getSavedJobs();
+  }, [user?.profile?.savedJobs, getSavedJobs]);
 
   return (
     <SafeAreaView style={styles.container}>

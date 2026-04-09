@@ -15,7 +15,6 @@ const loadFromLocalStorage = () => {
       localStorageCache[key] = value ? JSON.parse(value) : null;
     });
   } catch (e) {
-    console.log('localStorage not available');
   }
 };
 

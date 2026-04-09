@@ -1,25 +1,42 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApp } from '../../context/AppContext';
+import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
+import { Tooltip } from '../../components/common/Tooltip';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
 }
 
 export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, jobs, applications, deleteJob, logout } = useApp();
+  const { user, jobs, applications, deleteJob, logout, refreshApplications, refreshJobs } = useApp();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshApplications();
+      refreshJobs();
+    }, [refreshApplications, refreshJobs])
+  );
 
   const myJobs = jobs.filter(job => job.recruiterId === user?.id);
 
-  const getApplicationCount = (jobId: string) => {
-    return applications.filter(app => app.jobId === jobId).length;
+  const getJobId = (jobId: Job | string): string => {
+    if (typeof jobId === 'object') {
+      return jobId._id || jobId.id;
+    }
+    return jobId;
   };
 
-  const pendingCount = applications.filter(app => 
-    myJobs.some(j => j.id === app.jobId) && app.status === 'pending'
-  ).length;
+  const getApplicationCount = (jobId: string) => {
+    return applications.filter(app => getJobId(app.jobId) === jobId).length;
+  };
+
+  const pendingCount = applications.filter(app => {
+    const appJobId = getJobId(app.jobId);
+    return myJobs.some(j => j.id === appJobId) && app.status === 'pending';
+  }).length;
 
   const handleDeleteJob = (jobId: string) => {
     Alert.alert('Delete Job', 'Are you sure you want to delete this job?', [
@@ -50,33 +67,42 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>
-            {applications.filter(app => myJobs.some(j => j.id === app.jobId) && app.status === 'approved').length}
+            {applications.filter(app => {
+              const appJobId = getJobId(app.jobId);
+              return myJobs.some(j => j.id === appJobId) && app.status === 'approved';
+            }).length}
           </Text>
           <Text style={styles.statLabel}>Approved</Text>
         </View>
       </View>
 
       <View style={styles.quickActions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('PostJob')}
-        >
-          <Text style={styles.actionIcon}>➕</Text>
-          <Text style={styles.actionText}>Post New Job</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('RecruiterApplications')}
-        >
-          <Text style={styles.actionIcon}>📋</Text>
-          <Text style={styles.actionText}>View Applications</Text>
-        </TouchableOpacity>
+        <Tooltip tooltip="Post a new job opening">
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('PostJob')}
+          >
+            <Text style={styles.actionIcon}>➕</Text>
+            <Text style={styles.actionText}>Post New Job</Text>
+          </TouchableOpacity>
+        </Tooltip>
+        <Tooltip tooltip="View all job applications">
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Applications')}
+          >
+            <Text style={styles.actionIcon}>📋</Text>
+            <Text style={styles.actionText}>View Applications</Text>
+          </TouchableOpacity>
+        </Tooltip>
       </View>
 
       <View style={styles.logoutContainer}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>🚪 Logout</Text>
-        </TouchableOpacity>
+        <Tooltip tooltip="Logout from your account">
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>🚪 Logout</Text>
+          </TouchableOpacity>
+        </Tooltip>
       </View>
 
       <View style={styles.jobsSection}>
@@ -96,9 +122,11 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.jobTitle}>{item.title}</Text>
                 <Text style={styles.jobCompany}>{item.company}</Text>
               </View>
-              <TouchableOpacity onPress={() => handleDeleteJob(item.id)}>
-                <Text style={styles.deleteIcon}>🗑️</Text>
-              </TouchableOpacity>
+              <Tooltip tooltip="Delete this job posting">
+                <TouchableOpacity onPress={() => handleDeleteJob(item.id)}>
+                  <Text style={styles.deleteIcon}>🗑️</Text>
+                </TouchableOpacity>
+              </Tooltip>
             </View>
             <View style={styles.jobDetails}>
               <Text style={styles.jobDetail}>📍 {item.location}</Text>

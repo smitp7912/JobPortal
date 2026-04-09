@@ -4,11 +4,16 @@ import { Text, View, StyleSheet } from 'react-native';
 import { RecruiterDashboardScreen } from '../screens/recruiter/RecruiterDashboardScreen';
 import { RecruiterApplicationsScreen } from '../screens/recruiter/RecruiterApplicationsScreen';
 import { PostJobScreen } from '../screens/recruiter/PostJobScreen';
+import { Tooltip } from '../components/common/Tooltip';
 
 const Tab = createBottomTabNavigator();
 
-const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
-  <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+const TabIcon = ({ icon, focused, tooltip }: { icon: string; focused: boolean; tooltip: string }) => (
+  <Tooltip tooltip={tooltip}>
+    <View style={styles.iconContainer}>
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+    </View>
+  </Tooltip>
 );
 
 export const RecruiterTabs = () => {
@@ -26,7 +31,7 @@ export const RecruiterTabs = () => {
         name="Dashboard"
         component={RecruiterDashboardScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} tooltip="Dashboard - View your jobs" />,
         }}
       />
       <Tab.Screen
@@ -34,14 +39,14 @@ export const RecruiterTabs = () => {
         component={PostJobScreen}
         options={{
           tabBarLabel: 'Post Job',
-          tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} tooltip="Post Job - Create new listing" />,
         }}
       />
       <Tab.Screen
         name="Applications"
         component={RecruiterApplicationsScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} tooltip="Applications - View applicants" />,
         }}
       />
     </Tab.Navigator>
@@ -66,5 +71,9 @@ const styles = StyleSheet.create({
   },
   tabIconActive: {
     transform: [{ scale: 1.1 }],
+  },
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

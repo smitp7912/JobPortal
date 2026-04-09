@@ -9,6 +9,7 @@ export const CATEGORIES = [
   { id: '8', name: 'Education', icon: 'graduation-cap' },
   { id: '9', name: 'Healthcare', icon: 'stethoscope' },
   { id: '10', name: 'Other', icon: 'briefcase' },
+  { id: '11', name: 'System', icon: 'cog' },
 ];
 
 export const JOB_TYPES = ['Full-time', 'Part-time', 'Internship', 'Contract', 'Remote'];

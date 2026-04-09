@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../../components/common/Button';
 import { formatDate } from '../../utils/webStorage';
+import { Tooltip } from '../../components/common/Tooltip';
 
 interface Props {
   navigation: any;
@@ -13,31 +14,45 @@ interface Props {
 export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { job } = route.params;
   const { user, applyForJob, applications, saveJob } = useApp();
-  const [isApplied, setIsApplied] = useState(
-    applications.some(app => app.jobId === job.id && app.seekerId === user?.id)
+  const [isApplying, setIsApplying] = useState(false);
+
+  const isApplied = useMemo(() => 
+    applications.some(app => {
+      const appJobId = app.jobId?._id || app.jobId || app.jobId;
+      return appJobId === job.id && app.seekerId === user?.id;
+    }), [applications, job.id, user?.id]
   );
 
-  const handleApply = () => {
-    Alert.alert(
-      'Apply for Job',
-      `Are you sure you want to apply for ${job.title}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Apply',
-          onPress: async () => {
-            await applyForJob(job.id);
-            setIsApplied(true);
-            Alert.alert('Success', 'Your application has been submitted!');
-          },
-        },
-      ]
-    );
+  const isSaved = useMemo(() => 
+    user?.profile?.savedJobs?.includes(job.id) || false
+  , [user?.profile?.savedJobs, job.id]);
+
+  const handleApply = async () => {
+    if (isApplying || isApplied) return;
+    if (!user?.token) {
+      Alert.alert('Error', 'Please login to apply for jobs');
+      return;
+    }
+    setIsApplying(true);
+    const response = await applyForJob(job.id);
+    setIsApplying(false);
+    if (response && response.message === 'Application submitted successfully') {
+      Alert.alert('Success', 'Your application has been submitted!');
+    } else if (response && response.message?.includes('already')) {
+      Alert.alert('Info', 'You have already applied for this job');
+    } else if (response && (response.message === 'Invalid token' || response.message === 'Unauthorized')) {
+      Alert.alert('Error', 'Session expired. Please login again.');
+    } else {
+      Alert.alert('Error', response?.message || 'Failed to apply. Please try again.');
+    }
   };
 
-  const handleSave = () => {
-    saveJob(job.id);
-    Alert.alert('Saved', 'Job saved to your favorites!');
+  const handleSave = async () => {
+    if (!user?.token) {
+      Alert.alert('Error', 'Please login to save jobs');
+      return;
+    }
+    await saveJob(job.id);
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -52,6 +67,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       '8': 'Education',
       '9': 'Healthcare',
       '10': 'Other',
+      '11': 'System',
     };
     return categories[categoryId] || 'Other';
   };
@@ -110,15 +126,18 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveIcon}>☆</Text>
-          <Text style={styles.saveText}>Save</Text>
-        </TouchableOpacity>
+        <Tooltip tooltip={isSaved ? "Remove from saved jobs" : "Save this job for later"}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
+            <Text style={styles.saveText}>{isSaved ? 'Saved' : 'Save'}</Text>
+          </TouchableOpacity>
+        </Tooltip>
         <View style={styles.applyButtonContainer}>
           <Button
-            title={isApplied ? 'Applied' : 'Apply Now'}
+            title={isApplied ? 'Applied' : isApplying ? 'Applying...' : 'Apply Now'}
             onPress={handleApply}
-            disabled={isApplied}
+            disabled={isApplied || isApplying}
+            loading={isApplying}
           />
         </View>
       </View>

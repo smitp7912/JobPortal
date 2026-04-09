@@ -104,6 +104,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const meResponse = await api.getMe(storedUser.token);
         if (meResponse.user) {
           setUser({ ...storedUser, ...meResponse.user });
+          
+          const appsResponse = await api.getApplications(storedUser.token);
+            if (Array.isArray(appsResponse)) {
+              setApplications(appsResponse);
+            }
         }
       }
 
@@ -138,6 +143,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshApplications = async () => {
+    if (!user?.token) return;
+    try {
+      const response = await api.getApplications(user.token);
+      if (Array.isArray(response)) {
+        setApplications(response);
+      }
+    } catch (error) {
+      console.error('Error refreshing applications:', error);
+    }
+  };
+
   const login = async (email: string, password: string, role: 'seeker' | 'recruiter'): Promise<boolean> => {
     try {
       const response = await api.login(email, password, role);
@@ -163,6 +180,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           }));
           setJobs(normalizedJobs);
         }
+        
+        await refreshApplications();
         
         setIsBackendConnected(true);
         return true;
@@ -191,6 +210,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         
         setUser(userData);
         storeUser(userData);
+        
+        const jobsResponse = await api.getJobs();
+        if (Array.isArray(jobsResponse)) {
+          const normalizedJobs = jobsResponse.map(job => ({
+            ...job,
+            id: getJobId(job)
+          }));
+          setJobs(normalizedJobs);
+        }
+        
+        await refreshApplications();
+        
         setIsBackendConnected(true);
         return true;
       }
@@ -265,16 +296,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const applyForJob = async (jobId: string) => {
-    if (!user?.token) return;
+    if (!user?.token) {
+      return { message: 'Please login first', error: true };
+    }
     
     try {
       const response = await api.applyJob(user.token, jobId);
       
-      if (!response.error) {
-        await refreshJobs();
+      if (response.message === 'Invalid token' || response.message === 'Unauthorized') {
+        setUser(null);
+        storeUser(null);
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+        return { message: 'Session expired', error: true };
       }
+      
+      if (!response.error && !response.message?.includes('already')) {
+        setApplications(prev => [...prev, response.application]);
+      }
+      
+      return response;
     } catch (error) {
       console.error('Error applying for job:', error);
+      return { message: 'Network error', error: true };
     }
   };
 
@@ -318,13 +363,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveJob = async (jobId: string) => {
-    // In a full implementation, this would save to backend
-    console.log('Save job:', jobId);
+    if (!user?.token || !jobId) return;
+    
+    const currentSaved = user.profile?.savedJobs || [];
+    const isAlreadySaved = currentSaved.includes(jobId);
+    
+    let newSavedList;
+    if (isAlreadySaved) {
+      newSavedList = currentSaved.filter(id => id !== jobId);
+    } else {
+      newSavedList = [...currentSaved, jobId];
+    }
+    
+    const newProfile = { ...user.profile, savedJobs: newSavedList };
+    const newUser = { ...user, profile: newProfile };
+    setUser(newUser);
+    storeUser(newUser);
+    
+    try {
+      await api.updateProfile(user.token, newProfile);
+    } catch (error) {
+      console.error('Error saving job:', error);
+    }
   };
 
   const getSavedJobs = (): Job[] => {
-    // In a full implementation, this would fetch from backend
-    return [];
+    const savedJobIds = user?.profile?.savedJobs || [];
+    return jobs.filter(job => savedJobIds.includes(job.id));
   };
 
   return (
@@ -347,6 +412,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       saveJob,
       getSavedJobs,
       refreshJobs,
+      refreshApplications,
     }}>
       {children}
     </AppContext.Provider>

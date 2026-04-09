@@ -1,31 +1,13 @@
-const API_URL = 'https://jobportal-api-7p1p.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://jobportal-api-7p1p.onrender.com';
 
-// Helper to normalize MongoDB _id to id
-export const getJobId = (job) => {
-  return job._id || job.id;
-};
+export const getJobId = (job) => job._id || job.id;
 
-export const normalizeJob = (job) => {
-  return {
-    ...job,
-    id: getJobId(job),
-  };
-};
-
-const getHeaders = () => {
-  // For web
-  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-    const userData = localStorage.getItem('jobportal_user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      return { 'Content-Type': 'application/json', 'token': user.token };
-    }
-  }
-  return { 'Content-Type': 'application/json' };
-};
+export const normalizeJob = (job) => ({
+  ...job,
+  id: getJobId(job),
+});
 
 export const api = {
-  // Auth
   register: async (email, password, role, extraData = {}) => {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
@@ -68,7 +50,6 @@ export const api = {
     return response.json();
   },
 
-  // Jobs
   getJobs: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();
     const response = await fetch(`${API_URL}/api/jobs?${params}`);
@@ -104,7 +85,6 @@ export const api = {
     return response.json();
   },
 
-  // Applications
   getApplications: async (token, filters = {}) => {
     const params = new URLSearchParams(filters).toString();
     const response = await fetch(`${API_URL}/api/applications?${params}`, {
@@ -114,12 +94,22 @@ export const api = {
   },
 
   applyJob: async (token, jobId) => {
-    const response = await fetch(`${API_URL}/api/applications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'token': token },
-      body: JSON.stringify({ jobId })
-    });
-    return response.json();
+    if (!jobId) {
+      return { message: 'Invalid job ID', error: true };
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/applications`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'token': token 
+        },
+        body: JSON.stringify({ jobId })
+      });
+      return await response.json();
+    } catch (error) {
+      return { message: 'Network error', error: true };
+    }
   },
 
   updateApplicationStatus: async (token, applicationId, status) => {

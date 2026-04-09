@@ -6,11 +6,16 @@ import { SearchScreen } from '../screens/seeker/SearchScreen';
 import { ApplicationsScreen } from '../screens/seeker/ApplicationsScreen';
 import { SavedJobsScreen } from '../screens/seeker/SavedJobsScreen';
 import { ProfileScreen } from '../screens/seeker/ProfileScreen';
+import { Tooltip } from '../components/common/Tooltip';
 
 const Tab = createBottomTabNavigator();
 
-const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
-  <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+const TabIcon = ({ icon, focused, tooltip }: { icon: string; focused: boolean; tooltip: string }) => (
+  <Tooltip tooltip={tooltip}>
+    <View style={styles.iconContainer}>
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+    </View>
+  </Tooltip>
 );
 
 export const SeekerTabs = () => {
@@ -28,35 +33,35 @@ export const SeekerTabs = () => {
         name="Home"
         component={SeekerHomeScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} tooltip="Home - Browse jobs" />,
         }}
       />
       <Tab.Screen
         name="Search"
         component={SearchScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} tooltip="Search - Find jobs" />,
         }}
       />
       <Tab.Screen
         name="Applications"
         component={ApplicationsScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} tooltip="Applications - Your applications" />,
         }}
       />
       <Tab.Screen
         name="Saved"
         component={SavedJobsScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="⭐" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="⭐" focused={focused} tooltip="Saved - Saved jobs" />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} tooltip="Profile - Your profile" />,
         }}
       />
     </Tab.Navigator>
@@ -81,5 +86,9 @@ const styles = StyleSheet.create({
   },
   tabIconActive: {
     transform: [{ scale: 1.1 }],
+  },
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

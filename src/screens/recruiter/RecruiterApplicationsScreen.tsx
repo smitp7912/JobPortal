@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApp } from '../../context/AppContext';
+import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
@@ -10,18 +11,33 @@ interface Props {
 }
 
 export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { user, applications, jobs, updateApplicationStatus, getApplicantProfile } = useApp();
+  const { user, applications, jobs, updateApplicationStatus, getApplicantProfile, refreshApplications } = useApp();
   const [selectedJobId, setSelectedJobId] = useState(route.params?.jobId || null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
-  const myJobs = jobs.filter(job => job.recruiterId === user?.id);
-  
-  const allApplications = applications.filter(app => 
-    myJobs.some(j => j.id === app.jobId)
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshApplications();
+    }, [refreshApplications])
   );
 
+  const myJobs = jobs.filter(job => job.recruiterId === user?.id);
+  
+  const getJobId = (jobId: Job | string): string => {
+    if (typeof jobId === 'object') {
+      return jobId._id || jobId.id;
+    }
+    return jobId;
+  };
+  
+  const allApplications = applications.filter(app => {
+    const appJobId = getJobId(app.jobId);
+    return myJobs.some(j => j.id === appJobId);
+  });
+
   const filteredApplications = allApplications.filter(app => {
-    const matchesJob = !selectedJobId || app.jobId === selectedJobId;
+    const appJobId = getJobId(app.jobId);
+    const matchesJob = !selectedJobId || appJobId === selectedJobId;
     const matchesFilter = filter === 'all' || app.status === filter;
     return matchesJob && matchesFilter;
   });
@@ -105,7 +121,8 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
         data={filteredApplications}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          const job = getJobDetails(item.jobId);
+          const appJobId = getJobId(item.jobId);
+          const job = typeof item.jobId === 'object' ? item.jobId : getJobDetails(appJobId);
           const profile = getSeekerProfile(item.seekerId);
           return (
             <View style={styles.applicationCard}>

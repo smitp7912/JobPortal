@@ -3,13 +3,20 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
 }
 
 export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, applications, jobs } = useApp();
+  const { user, applications, jobs, refreshApplications } = useApp();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshApplications();
+    }, [refreshApplications])
+  );
 
   const myApplications = applications.filter(app => app.seekerId === user?.id);
 
