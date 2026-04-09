@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp, Job } from '../../context/AppContext';
@@ -14,6 +14,8 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
   const { user, applications, jobs, updateApplicationStatus, getApplicantProfile, refreshApplications } = useApp();
   const [selectedJobId, setSelectedJobId] = useState(route.params?.jobId || null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [seekerProfiles, setSeekerProfiles] = useState<Record<string, any>>({});
+  const [profilesLoading, setProfilesLoading] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -35,6 +37,27 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
     return myJobs.some(j => j.id === appJobId);
   });
 
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const uniqueSeekerIds = [...new Set(allApplications.map(app => app.seekerId))];
+      if (uniqueSeekerIds.length === 0) return;
+      
+      setProfilesLoading(true);
+      const newProfiles: Record<string, any> = {};
+      for (const seekerId of uniqueSeekerIds) {
+        if (!seekerProfiles[seekerId]) {
+          const profile = await getApplicantProfile(seekerId);
+          newProfiles[seekerId] = profile;
+        }
+      }
+      if (Object.keys(newProfiles).length > 0) {
+        setSeekerProfiles(prev => ({ ...prev, ...newProfiles }));
+      }
+      setProfilesLoading(false);
+    };
+    fetchProfiles();
+  }, [allApplications, getApplicantProfile]);
+
   const filteredApplications = allApplications.filter(app => {
     const appJobId = getJobId(app.jobId);
     const matchesJob = !selectedJobId || appJobId === selectedJobId;
@@ -44,10 +67,6 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
 
   const getJobDetails = (jobId: string) => {
     return jobs.find(j => j.id === jobId);
-  };
-
-  const getSeekerProfile = (seekerId: string) => {
-    return getApplicantProfile(seekerId);
   };
 
   const handleStatusUpdate = (applicationId: string, status: 'approved' | 'rejected') => {
@@ -123,7 +142,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
         renderItem={({ item }) => {
           const appJobId = getJobId(item.jobId);
           const job = typeof item.jobId === 'object' ? item.jobId : getJobDetails(appJobId);
-          const profile = getSeekerProfile(item.seekerId);
+          const profile = seekerProfiles[item.seekerId];
           return (
             <View style={styles.applicationCard}>
               <View style={styles.cardHeader}>

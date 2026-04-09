@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import api, { getJobId } from '../services/api';
 
 export type UserRole = 'seeker' | 'recruiter';
@@ -128,7 +128,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const refreshJobs = async () => {
+  const refreshJobs = useCallback(async () => {
     try {
       const response = await api.getJobs();
       if (Array.isArray(response)) {
@@ -141,9 +141,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error refreshing jobs:', error);
     }
-  };
+  }, []);
 
-  const refreshApplications = async () => {
+  const refreshApplications = useCallback(async () => {
     if (!user?.token) return;
     try {
       const response = await api.getApplications(user.token);
@@ -153,7 +153,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error refreshing applications:', error);
     }
-  };
+  }, [user?.token]);
 
   const login = async (email: string, password: string, role: 'seeker' | 'recruiter'): Promise<boolean> => {
     try {
@@ -339,7 +339,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getApplicantProfile = async (seekerId: string) => {
+  const getApplicantProfile = useCallback(async (seekerId: string) => {
     if (!user?.token) return null;
     
     try {
@@ -349,7 +349,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error getting applicant profile:', error);
       return null;
     }
-  };
+  }, [user?.token]);
 
   const deleteJob = async (jobId: string) => {
     if (!user?.token) return;

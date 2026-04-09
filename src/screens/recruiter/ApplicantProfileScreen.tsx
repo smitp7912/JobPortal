@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
@@ -11,8 +11,25 @@ interface Props {
 export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
   const { seekerId } = route.params;
   const { getApplicantProfile } = useApp();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const profile = getApplicantProfile(seekerId);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const data = await getApplicantProfile(seekerId);
+      setProfile(data);
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [seekerId, getApplicantProfile]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.errorText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!profile) {
     return (

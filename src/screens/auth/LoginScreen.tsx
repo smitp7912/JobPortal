@@ -25,7 +25,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     const success = await login(email, password, role);
     setLoading(false);
     if (!success) {
-      Alert.alert('Error', 'Invalid credentials. Try:\n\nSeeker: seeker@example.com / password123\nRecruiter: recruiter@example.com / password123');
+      Alert.alert('Error', 'Invalid credentials. Try:\n\nSeeker: bob@demo.com / demo123\nRecruiter: recruiter2@demo.com / demo123');
     }
   };
 
@@ -82,9 +82,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.demoCredentials}>
           <Text style={styles.demoTitle}>Demo Credentials:</Text>
-          <Text style={styles.demoText}>Seeker: seeker@example.com</Text>
-          <Text style={styles.demoText}>Recruiter: recruiter@example.com</Text>
-          <Text style={styles.demoText}>Password: password123</Text>
+          <Text style={styles.demoText}>Seeker: bob@demo.com</Text>
+          <Text style={styles.demoText}>Recruiter: recruiter2@demo.com</Text>
+          <Text style={styles.demoText}>Password: demo123</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
