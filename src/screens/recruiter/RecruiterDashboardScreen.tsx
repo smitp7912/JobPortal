@@ -1,10 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from '../../components/common/Tooltip';
-import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
@@ -12,42 +11,60 @@ interface Props {
 
 export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { user, jobs, applications, deleteJob, logout, refreshApplications, refreshJobs } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      refreshApplications();
-      refreshJobs();
-    }, [refreshApplications, refreshJobs])
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refreshJobs(), refreshApplications()]);
+    setRefreshing(false);
+  }, [refreshJobs, refreshApplications]);
 
-  const myJobs = jobs.filter(job => job.recruiterId === user?.id);
-
-  const getJobId = (jobId: Job | string): string => {
+  const getJobId = useCallback((jobId: Job | string): string => {
     if (typeof jobId === 'object') {
       return jobId._id || jobId.id;
     }
     return jobId;
-  };
+  }, []);
 
-  const getApplicationCount = (jobId: string) => {
-    return applications.filter(app => getJobId(app.jobId) === jobId).length;
-  };
+  const myJobs = useMemo(() => 
+    jobs.filter(job => job.recruiterId === user?.id),
+    [jobs, user?.id]
+  );
 
-  const pendingCount = applications.filter(app => {
-    const appJobId = getJobId(app.jobId);
-    return myJobs.some(j => j.id === appJobId) && app.status === 'pending';
-  }).length;
+  const applicationCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    myJobs.forEach(job => {
+      counts[job.id] = applications.filter(app => getJobId(app.jobId) === job.id).length;
+    });
+    return counts;
+  }, [myJobs, applications, getJobId]);
 
-  const handleDeleteJob = (jobId: string) => {
+  const pendingCount = useMemo(() => 
+    applications.filter(app => {
+      const appJobId = getJobId(app.jobId);
+      return myJobs.some(j => j.id === appJobId) && app.status === 'pending';
+    }).length,
+    [applications, myJobs, getJobId]
+  );
+
+  const approvedCount = useMemo(() => 
+    applications.filter(app => {
+      const appJobId = getJobId(app.jobId);
+      return myJobs.some(j => j.id === appJobId) && app.status === 'approved';
+    }).length,
+    [applications, myJobs, getJobId]
+  );
+
+  const handleDeleteJob = useCallback((jobId: string) => {
     Alert.alert('Delete Job', 'Are you sure you want to delete this job?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteJob(jobId) },
     ]);
-  };
+  }, [deleteJob]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
-  };
+  }, [logout]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,10 +129,11 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
       <FlatList
         data={myJobs}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.jobCard}
-            onPress={() => navigation.navigate('RecruiterApplications', { jobId: item.id })}
+            onPress={() => navigation.navigate('Applications', { screen: 'ApplicationsList', params: { jobId: item.id } })}
           >
             <View style={styles.jobHeader}>
               <View style={styles.jobInfo}>
@@ -135,7 +153,7 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.applicationCount}>
               <Text style={styles.applicationCountText}>
-                {getApplicationCount(item.id)} application(s)
+                {applicationCounts[item.id] || 0} application(s)
               </Text>
               <Text style={styles.postedDate}>Posted: {formatDate(item.postedDate)}</Text>
             </View>

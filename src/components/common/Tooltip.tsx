@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
 interface TooltipProps {
@@ -6,7 +6,7 @@ interface TooltipProps {
   tooltip: string;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ children, tooltip }) => {
+const TooltipComponent: React.FC<TooltipProps> = ({ children, tooltip }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const opacity = useState(new Animated.Value(0))[0];
 
@@ -45,6 +45,8 @@ export const Tooltip: React.FC<TooltipProps> = ({ children, tooltip }) => {
   );
 };
 
+export const Tooltip = memo(TooltipComponent);
+
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
@@ -63,6 +65,5 @@ const styles = StyleSheet.create({
   tooltipText: {
     color: '#fff',
     fontSize: 12,
-    whiteSpace: 'nowrap',
   },
 });

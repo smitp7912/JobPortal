@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
-import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
@@ -11,12 +10,13 @@ interface Props {
 
 export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
   const { user, applications, jobs, refreshApplications } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      refreshApplications();
-    }, [refreshApplications])
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshApplications();
+    setRefreshing(false);
+  }, [refreshApplications]);
 
   const myApplications = applications.filter(app => app.seekerId === user?.id);
 
@@ -51,14 +51,15 @@ export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
 
       <FlatList
         data={myApplications}
-        keyExtractor={(item) => item._id || item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => {
           const job = typeof item.jobId === 'object' ? item.jobId : getJobDetails(item.jobId as string);
           if (!job) return null;
           return (
             <TouchableOpacity 
               style={styles.applicationCard}
-              onPress={() => navigation.navigate('JobDetails', { job })}
+              onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job } })}
             >
               <View style={styles.cardHeader}>
                 <View>

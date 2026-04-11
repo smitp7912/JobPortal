@@ -1,22 +1,46 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Text, View, StyleSheet, Platform } from 'react-native';
 import { SeekerHomeScreen } from '../screens/seeker/SeekerHomeScreen';
 import { SearchScreen } from '../screens/seeker/SearchScreen';
 import { ApplicationsScreen } from '../screens/seeker/ApplicationsScreen';
 import { SavedJobsScreen } from '../screens/seeker/SavedJobsScreen';
 import { ProfileScreen } from '../screens/seeker/ProfileScreen';
-import { Tooltip } from '../components/common/Tooltip';
+import { JobDetailsScreen } from '../screens/seeker/JobDetailsScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-const TabIcon = ({ icon, focused, tooltip }: { icon: string; focused: boolean; tooltip: string }) => (
-  <Tooltip tooltip={tooltip}>
+const ApplicationsStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ApplicationsList" component={ApplicationsScreen} />
+    <Stack.Screen 
+      name="JobDetails" 
+      component={JobDetailsScreen}
+      options={{ headerShown: true, title: 'Job Details' }}
+    />
+  </Stack.Navigator>
+);
+
+const SavedStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="SavedJobsList" component={SavedJobsScreen} />
+    <Stack.Screen 
+      name="JobDetails" 
+      component={JobDetailsScreen}
+      options={{ headerShown: true, title: 'Job Details' }}
+    />
+  </Stack.Navigator>
+);
+
+const TabIcon = React.memo(({ icon, focused }: { icon: string; focused: boolean }) => {
+  return (
     <View style={styles.iconContainer}>
       <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
     </View>
-  </Tooltip>
-);
+  );
+});
 
 export const SeekerTabs = () => {
   return (
@@ -27,41 +51,42 @@ export const SeekerTabs = () => {
         tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: styles.tabLabel,
+        lazy: false,
       }}
     >
       <Tab.Screen
         name="Home"
         component={SeekerHomeScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} tooltip="Home - Browse jobs" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Search"
         component={SearchScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} tooltip="Search - Find jobs" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Applications"
-        component={ApplicationsScreen}
+        component={ApplicationsStack}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} tooltip="Applications - Your applications" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Saved"
-        component={SavedJobsScreen}
+        component={SavedStack}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="⭐" focused={focused} tooltip="Saved - Saved jobs" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="⭐" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} tooltip="Profile - Your profile" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -73,9 +98,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingBottom: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingTop: 8,
-    height: 60,
+    height: Platform.OS === 'ios' ? 70 : 60,
   },
   tabLabel: {
     fontSize: 12,

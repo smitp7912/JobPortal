@@ -28,7 +28,7 @@ export const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
         renderItem={({ item }) => (
           <JobCard
             job={item}
-            onPress={() => navigation.navigate('JobDetails', { job: item })}
+            onPress={() => navigation.navigate('Saved', { screen: 'JobDetails', params: { job: item } })}
           />
         )}
         contentContainerStyle={styles.listContent}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, TouchableOpacity, Text, View, Image, ActivityIndicator } from 'react-native';
 import { Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
@@ -9,22 +9,42 @@ interface JobCardProps {
   onPress: () => void;
   showApplyButton?: boolean;
   onApply?: () => void;
-  isApplied?: boolean;
+  applicationStatus?: 'pending' | 'approved' | 'rejected' | null;
   isApplying?: boolean;
   isSaved?: boolean;
   onSave?: () => void;
 }
 
-export const JobCard: React.FC<JobCardProps> = ({
+const JobCardComponent: React.FC<JobCardProps> = ({
   job,
   onPress,
   showApplyButton,
   onApply,
-  isApplied,
+  applicationStatus,
   isApplying,
   isSaved,
   onSave,
 }) => {
+  const isApplied = applicationStatus !== null && applicationStatus !== undefined;
+  const isDisabled = isApplied && (applicationStatus === 'approved' || applicationStatus === 'rejected');
+
+  const getApplyButtonText = () => {
+    switch (applicationStatus) {
+      case 'approved': return 'Accepted';
+      case 'rejected': return 'Rejected';
+      case 'pending': return 'Applied';
+      default: return 'Apply Now';
+    }
+  };
+
+  const getApplyButtonStyle = () => {
+    switch (applicationStatus) {
+      case 'approved': return styles.acceptedButton;
+      case 'rejected': return styles.rejectedButton;
+      case 'pending': return styles.pendingButton;
+      default: return styles.applyButton;
+    }
+  };
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
@@ -51,18 +71,18 @@ export const JobCard: React.FC<JobCardProps> = ({
       <Text style={styles.description} numberOfLines={2}>{job.description}</Text>
 
       <View style={styles.footer}>
-        <Text style={styles.postedDate}>Posted: {formatDate(job.postedDate)}</Text>
+        <Text style={styles.postedDate}>Posted: {job.postedDate ? formatDate(job.postedDate) : 'N/A'}</Text>
         {showApplyButton && onApply && (
           <TouchableOpacity 
-            style={[styles.applyButton, isApplied && styles.appliedButton, isApplying && styles.applyingButton]} 
+            style={[styles.applyButton, getApplyButtonStyle(), isApplying && styles.applyingButton]} 
             onPress={onApply}
-            disabled={isApplied || isApplying}
+            disabled={isDisabled || isApplying}
           >
             {isApplying ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.applyButtonText}>
-                {isApplied ? 'Applied' : 'Apply Now'}
+                {getApplyButtonText()}
               </Text>
             )}
           </TouchableOpacity>
@@ -156,9 +176,20 @@ const styles = StyleSheet.create({
   applyingButton: {
     backgroundColor: '#93C5FD',
   },
+  acceptedButton: {
+    backgroundColor: '#10B981',
+  },
+  rejectedButton: {
+    backgroundColor: '#EF4444',
+  },
+  pendingButton: {
+    backgroundColor: '#F59E0B',
+  },
   applyButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
   },
 });
+
+export const JobCard = memo(JobCardComponent);

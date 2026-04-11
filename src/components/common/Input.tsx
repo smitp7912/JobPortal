@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { TextInput, StyleSheet, View, Text } from 'react-native';
 
 interface InputProps {
@@ -13,7 +13,7 @@ interface InputProps {
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({
+const InputComponent: React.FC<InputProps> = ({
   label,
   value,
   onChangeText,
@@ -42,6 +42,8 @@ export const Input: React.FC<InputProps> = ({
     </View>
   );
 };
+
+export const Input = memo(InputComponent);
 
 const styles = StyleSheet.create({
   container: {

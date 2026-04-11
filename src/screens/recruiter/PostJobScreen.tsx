@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
@@ -21,7 +21,12 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
   const [requirements, setRequirements] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handlePost = async () => {
+  const requirementsList = useMemo(() => 
+    requirements.split(',').map(r => r.trim()).filter(r => r),
+    [requirements]
+  );
+
+  const handlePost = useCallback(async () => {
     if (!title || !company || !description || !location || !salary || !selectedCategory || !selectedJobType) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
@@ -38,7 +43,7 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
         salary,
         category: selectedCategory,
         jobType: selectedJobType,
-        requirements: requirements.split(',').map(r => r.trim()).filter(r => r),
+        requirements: requirementsList,
       });
       Alert.alert('Success', 'Job posted successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -48,7 +53,7 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [title, company, description, location, salary, selectedCategory, selectedJobType, requirementsList, postJob, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import api, { getJobId } from '../services/api';
 
 export type UserRole = 'seeker' | 'recruiter';
@@ -52,14 +52,15 @@ interface AppContextType {
   logout: () => Promise<void>;
   switchRole: () => void;
   updateProfile: (profile: any) => Promise<void>;
-  postJob: (job: Omit<Job, '_id' | 'recruiterId' | 'postedDate' | 'applicants'>) => Promise<void>;
-  applyForJob: (jobId: string) => Promise<void>;
+  postJob: (job: Omit<Job, '_id' | 'id' | 'recruiterId' | 'postedDate' | 'applicants'>) => Promise<void>;
+  applyForJob: (jobId: string) => Promise<any>;
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   getApplicantProfile: (seekerId: string) => any;
   deleteJob: (jobId: string) => Promise<void>;
   saveJob: (jobId: string) => Promise<void>;
   getSavedJobs: () => Job[];
   refreshJobs: () => Promise<void>;
+  refreshApplications: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -105,10 +106,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (meResponse.user) {
           setUser({ ...storedUser, ...meResponse.user });
           
-          const appsResponse = await api.getApplications(storedUser.token);
+          // Pre-load applications for recruiters
+          if (storedUser.role === 'recruiter') {
+            const appsResponse = await api.getApplications(storedUser.token);
             if (Array.isArray(appsResponse)) {
               setApplications(appsResponse);
             }
+          } else {
+            const appsResponse = await api.getApplications(storedUser.token);
+            if (Array.isArray(appsResponse)) {
+              setApplications(appsResponse);
+            }
+          }
         }
       }
 
@@ -181,7 +190,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setJobs(normalizedJobs);
         }
         
-        await refreshApplications();
+        // Pre-load applications for both seekers and recruiters
+        if (userData.token) {
+          const appsResponse = await api.getApplications(userData.token);
+          if (Array.isArray(appsResponse)) {
+            setApplications(appsResponse);
+          }
+        }
         
         setIsBackendConnected(true);
         return true;
@@ -370,7 +385,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     let newSavedList;
     if (isAlreadySaved) {
-      newSavedList = currentSaved.filter(id => id !== jobId);
+      newSavedList = currentSaved.filter((id: string) => id !== jobId);
     } else {
       newSavedList = [...currentSaved, jobId];
     }
@@ -392,28 +407,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return jobs.filter(job => savedJobIds.includes(job.id));
   };
 
+  const contextValue = useMemo(() => ({
+    user,
+    jobs,
+    applications,
+    isLoading,
+    isBackendConnected,
+    login,
+    register,
+    logout,
+    switchRole,
+    updateProfile,
+    postJob,
+    applyForJob,
+    updateApplicationStatus,
+    getApplicantProfile,
+    deleteJob,
+    saveJob,
+    getSavedJobs,
+    refreshJobs,
+    refreshApplications,
+  }), [
+    user,
+    jobs,
+    applications,
+    isLoading,
+    isBackendConnected,
+  ]);
+
   return (
-    <AppContext.Provider value={{
-      user,
-      jobs,
-      applications,
-      isLoading,
-      isBackendConnected,
-      login,
-      register,
-      logout,
-      switchRole,
-      updateProfile,
-      postJob,
-      applyForJob,
-      updateApplicationStatus,
-      getApplicantProfile,
-      deleteJob,
-      saveJob,
-      getSavedJobs,
-      refreshJobs,
-      refreshApplications,
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

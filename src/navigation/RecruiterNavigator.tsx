@@ -1,20 +1,33 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Text, View, StyleSheet, Platform } from 'react-native';
 import { RecruiterDashboardScreen } from '../screens/recruiter/RecruiterDashboardScreen';
 import { RecruiterApplicationsScreen } from '../screens/recruiter/RecruiterApplicationsScreen';
 import { PostJobScreen } from '../screens/recruiter/PostJobScreen';
-import { Tooltip } from '../components/common/Tooltip';
+import { ApplicantProfileScreen } from '../screens/recruiter/ApplicantProfileScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-const TabIcon = ({ icon, focused, tooltip }: { icon: string; focused: boolean; tooltip: string }) => (
-  <Tooltip tooltip={tooltip}>
+const ApplicationsStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ApplicationsList" component={RecruiterApplicationsScreen} />
+    <Stack.Screen 
+      name="ApplicantProfile" 
+      component={ApplicantProfileScreen}
+      options={{ headerShown: true, title: 'Applicant Profile' }}
+    />
+  </Stack.Navigator>
+);
+
+const TabIcon = React.memo(({ icon, focused }: { icon: string; focused: boolean }) => {
+  return (
     <View style={styles.iconContainer}>
       <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
     </View>
-  </Tooltip>
-);
+  );
+});
 
 export const RecruiterTabs = () => {
   return (
@@ -25,13 +38,14 @@ export const RecruiterTabs = () => {
         tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: styles.tabLabel,
+        lazy: false,
       }}
     >
       <Tab.Screen
         name="Dashboard"
         component={RecruiterDashboardScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} tooltip="Dashboard - View your jobs" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -39,14 +53,14 @@ export const RecruiterTabs = () => {
         component={PostJobScreen}
         options={{
           tabBarLabel: 'Post Job',
-          tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} tooltip="Post Job - Create new listing" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Applications"
-        component={RecruiterApplicationsScreen}
+        component={ApplicationsStack}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} tooltip="Applications - View applicants" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -58,9 +72,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingBottom: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingTop: 8,
-    height: 60,
+    height: Platform.OS === 'ios' ? 70 : 60,
   },
   tabLabel: {
     fontSize: 12,

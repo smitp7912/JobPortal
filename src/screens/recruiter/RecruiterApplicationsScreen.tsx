@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
-import { useFocusEffect } from '@react-navigation/native';
 
 interface Props {
   navigation: any;
@@ -16,54 +15,69 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [seekerProfiles, setSeekerProfiles] = useState<Record<string, any>>({});
   const [profilesLoading, setProfilesLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      refreshApplications();
-    }, [refreshApplications])
+  const myJobs = useMemo(() => 
+    jobs.filter(job => job.recruiterId === user?.id),
+    [jobs, user?.id]
   );
 
-  const myJobs = jobs.filter(job => job.recruiterId === user?.id);
-  
-  const getJobId = (jobId: Job | string): string => {
+  const getJobId = useCallback((jobId: Job | string): string => {
     if (typeof jobId === 'object') {
       return jobId._id || jobId.id;
     }
     return jobId;
-  };
-  
-  const allApplications = applications.filter(app => {
-    const appJobId = getJobId(app.jobId);
-    return myJobs.some(j => j.id === appJobId);
-  });
+  }, []);
+
+  const allApplications = useMemo(() => 
+    applications.filter(app => {
+      const appJobId = getJobId(app.jobId);
+      return myJobs.some(j => j.id === appJobId);
+    }),
+    [applications, myJobs, getJobId]
+  );
+
+  const filteredApplications = useMemo(() =>
+    allApplications.filter(app => {
+      const appJobId = getJobId(app.jobId);
+      const matchesJob = !selectedJobId || appJobId === selectedJobId;
+      const matchesFilter = filter === 'all' || app.status === filter;
+      return matchesJob && matchesFilter;
+    }),
+    [allApplications, selectedJobId, filter, getJobId]
+  );
+
+  const fetchProfiles = useCallback(async () => {
+    const uniqueSeekerIds = [...new Set(allApplications.map(app => app.seekerId))];
+    if (uniqueSeekerIds.length === 0) return;
+    
+    setProfilesLoading(true);
+    const newProfiles: Record<string, any> = {};
+    for (const seekerId of uniqueSeekerIds) {
+      if (!seekerProfiles[seekerId]) {
+        const profile = await getApplicantProfile(seekerId);
+        newProfiles[seekerId] = profile;
+      }
+    }
+    if (Object.keys(newProfiles).length > 0) {
+      setSeekerProfiles(prev => ({ ...prev, ...newProfiles }));
+    }
+    setProfilesLoading(false);
+  }, [allApplications, getApplicantProfile, seekerProfiles]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshApplications();
+    setSeekerProfiles({});
+    await fetchProfiles();
+    setRefreshing(false);
+  }, [refreshApplications, fetchProfiles]);
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      const uniqueSeekerIds = [...new Set(allApplications.map(app => app.seekerId))];
-      if (uniqueSeekerIds.length === 0) return;
-      
-      setProfilesLoading(true);
-      const newProfiles: Record<string, any> = {};
-      for (const seekerId of uniqueSeekerIds) {
-        if (!seekerProfiles[seekerId]) {
-          const profile = await getApplicantProfile(seekerId);
-          newProfiles[seekerId] = profile;
-        }
-      }
-      if (Object.keys(newProfiles).length > 0) {
-        setSeekerProfiles(prev => ({ ...prev, ...newProfiles }));
-      }
-      setProfilesLoading(false);
-    };
-    fetchProfiles();
-  }, [allApplications, getApplicantProfile]);
-
-  const filteredApplications = allApplications.filter(app => {
-    const appJobId = getJobId(app.jobId);
-    const matchesJob = !selectedJobId || appJobId === selectedJobId;
-    const matchesFilter = filter === 'all' || app.status === filter;
-    return matchesJob && matchesFilter;
-  });
+    if (allApplications.length > 0) {
+      fetchProfiles();
+    }
+  }, [allApplications, fetchProfiles]);
 
   const getJobDetails = (jobId: string) => {
     return jobs.find(j => j.id === jobId);
@@ -138,7 +152,8 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
 
       <FlatList
         data={filteredApplications}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => {
           const appJobId = getJobId(item.jobId);
           const job = typeof item.jobId === 'object' ? item.jobId : getJobDetails(appJobId);
@@ -179,13 +194,13 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.approveButton]}
-                    onPress={() => handleStatusUpdate(item.id, 'approved')}
+                    onPress={() => handleStatusUpdate(item._id || item.id || '', 'approved')}
                   >
                     <Text style={styles.actionButtonText}>✓ Approve</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.rejectButton]}
-                    onPress={() => handleStatusUpdate(item.id, 'rejected')}
+                    onPress={() => handleStatusUpdate(item._id || item.id || '', 'rejected')}
                   >
                     <Text style={styles.actionButtonText}>✕ Reject</Text>
                   </TouchableOpacity>

@@ -7,8 +7,6 @@ import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { SeekerTabs } from './SeekerNavigator';
 import { RecruiterTabs } from './RecruiterNavigator';
-import { JobDetailsScreen } from '../screens/seeker/JobDetailsScreen';
-import { ApplicantProfileScreen } from '../screens/recruiter/ApplicantProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,23 +33,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         ) : user.role === 'seeker' ? (
-          <>
-            <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
-            <Stack.Screen 
-              name="JobDetails" 
-              component={JobDetailsScreen}
-              options={{ headerShown: true, title: 'Job Details' }}
-            />
-          </>
+          <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
         ) : (
-          <>
-            <Stack.Screen name="RecruiterTabs" component={RecruiterTabs} />
-            <Stack.Screen 
-              name="ApplicantProfile" 
-              component={ApplicantProfileScreen}
-              options={{ headerShown: true, title: 'Applicant Profile' }}
-            />
-          </>
+          <Stack.Screen name="RecruiterTabs" component={RecruiterTabs} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

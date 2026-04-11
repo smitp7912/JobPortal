@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
-import { Button } from '../../components/common/Button';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from '../../components/common/Tooltip';
 
@@ -16,34 +15,61 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user, applyForJob, applications, saveJob } = useApp();
   const [isApplying, setIsApplying] = useState(false);
 
-  const isApplied = useMemo(() => 
-    applications.some(app => {
-      const appJobId = app.jobId?._id || app.jobId || app.jobId;
-      return appJobId === job.id && app.seekerId === user?.id;
-    }), [applications, job.id, user?.id]
-  );
+  const applicationStatus = useMemo((): 'pending' | 'approved' | 'rejected' | null => {
+    if (!applications || !Array.isArray(applications)) return null;
+    const app = applications.find(app => {
+      if (!app || !app.jobId || !app.seekerId) return false;
+      const jobIdValue = typeof app.jobId === 'object' ? app.jobId._id || app.jobId.id : app.jobId;
+      return jobIdValue === job.id && app.seekerId === user?.id;
+    });
+    return app?.status || null;
+  }, [applications, job.id, user?.id]);
+
+  const isApplied = applicationStatus !== null;
+  const isDisabled = isApplied && (applicationStatus === 'approved' || applicationStatus === 'rejected');
 
   const isSaved = useMemo(() => 
     user?.profile?.savedJobs?.includes(job.id) || false
   , [user?.profile?.savedJobs, job.id]);
 
+  const getButtonText = () => {
+    switch (applicationStatus) {
+      case 'approved': return 'Accepted';
+      case 'rejected': return 'Rejected';
+      case 'pending': return 'Applied';
+      default: return 'Apply Now';
+    }
+  };
+
+  const getButtonStyle = () => {
+    switch (applicationStatus) {
+      case 'approved': return styles.acceptedButton;
+      case 'rejected': return styles.rejectedButton;
+      case 'pending': return styles.pendingButton;
+      default: return styles.applyButton;
+    }
+  };
+
   const handleApply = async () => {
-    if (isApplying || isApplied) return;
+    if (isApplying || isDisabled) return;
     if (!user?.token) {
       Alert.alert('Error', 'Please login to apply for jobs');
       return;
     }
     setIsApplying(true);
-    const response = await applyForJob(job.id);
+    const response: any = await applyForJob(job.id);
     setIsApplying(false);
-    if (response && response.message === 'Application submitted successfully') {
-      Alert.alert('Success', 'Your application has been submitted!');
-    } else if (response && response.message?.includes('already')) {
-      Alert.alert('Info', 'You have already applied for this job');
-    } else if (response && (response.message === 'Invalid token' || response.message === 'Unauthorized')) {
-      Alert.alert('Error', 'Session expired. Please login again.');
-    } else {
-      Alert.alert('Error', response?.message || 'Failed to apply. Please try again.');
+    if (response && typeof response === 'object' && 'message' in response) {
+      const message = response.message as string;
+      if (message === 'Application submitted successfully') {
+        Alert.alert('Success', 'Your application has been submitted!');
+      } else if (message.includes('already')) {
+        Alert.alert('Info', 'You have already applied for this job');
+      } else if (message === 'Invalid token' || message === 'Unauthorized') {
+        Alert.alert('Error', 'Session expired. Please login again.');
+      } else {
+        Alert.alert('Error', message || 'Failed to apply. Please try again.');
+      }
     }
   };
 
@@ -133,12 +159,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         </Tooltip>
         <View style={styles.applyButtonContainer}>
-          <Button
-            title={isApplied ? 'Applied' : isApplying ? 'Applying...' : 'Apply Now'}
+          <TouchableOpacity
+            style={[styles.applyButton, getButtonStyle(), isApplying && styles.applyingButton]}
             onPress={handleApply}
-            disabled={isApplied || isApplying}
-            loading={isApplying}
-          />
+            disabled={isDisabled || isApplying}
+          >
+            {isApplying ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.applyButtonText}>{getButtonText()}</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -254,5 +285,30 @@ const styles = StyleSheet.create({
   },
   applyButtonContainer: {
     flex: 1,
+  },
+  applyButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  acceptedButton: {
+    backgroundColor: '#10B981',
+  },
+  rejectedButton: {
+    backgroundColor: '#EF4444',
+  },
+  pendingButton: {
+    backgroundColor: '#F59E0B',
+  },
+  applyingButton: {
+    backgroundColor: '#93C5FD',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

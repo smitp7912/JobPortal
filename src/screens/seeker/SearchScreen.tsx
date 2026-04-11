@@ -24,25 +24,31 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       const matchesSearch = !searchQuery || 
         job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchQuery.toLowerCase());
+        (job.location || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === null || selectedCategory === '' || job.category === selectedCategory;
       const matchesJobType = !selectedJobType || job.jobType === selectedJobType;
       return matchesSearch && matchesCategory && matchesJobType;
     }), [jobs, searchQuery, selectedCategory, selectedJobType]
   );
 
-  const hasApplied = useCallback((jobId: string) => 
-    applications.some(app => {
-      const appJobId = app.jobId?._id || app.jobId || app.jobId;
-      return appJobId === jobId && app.seekerId === user?.id;
-    }), [applications, user?.id]
-  );
+  const getApplicationStatus = useCallback((jobId: string): 'pending' | 'approved' | 'rejected' | null => {
+    if (!applications || !Array.isArray(applications)) return null;
+    const app = applications.find(app => {
+      if (!app || !app.jobId || !app.seekerId) return false;
+      const jobIdValue = typeof app.jobId === 'object' ? app.jobId._id || app.jobId.id : app.jobId;
+      return jobIdValue === jobId && app.seekerId === user?.id;
+    });
+    return app?.status || null;
+  }, [applications, user?.id]);
 
   const handleApply = useCallback(async (jobId: string) => {
+    if (!applications || !Array.isArray(applications)) return;
+    const status = getApplicationStatus(jobId);
+    if (status === 'approved' || status === 'rejected') return;
     setApplyingJobId(jobId);
     await applyForJob(jobId);
     setApplyingJobId(null);
-  }, [applyForJob]);
+  }, [applyForJob, getApplicationStatus, applications]);
 
   const clearFilters = useCallback(() => {
     setSelectedCategory(null);
@@ -95,10 +101,10 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
         renderItem={({ item }) => (
           <JobCard
             job={item}
-            onPress={() => navigation.navigate('JobDetails', { job: item })}
+            onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job: item } })}
             showApplyButton
             onApply={() => handleApply(item.id)}
-            isApplied={hasApplied(item.id)}
+            applicationStatus={getApplicationStatus(item.id)}
             isApplying={applyingJobId === item.id}
           />
         )}
