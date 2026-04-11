@@ -38,7 +38,7 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
       await postJob({
         title,
         company,
-        companyLogo: `https://via.placeholder.com/100/2563EB/FFFFFF?text=${company.charAt(0)}`,
+        companyLogo: `https://placehold.co/100x100/2563EB/FFFFFF?text=${encodeURIComponent(company.charAt(0))}`,
         description,
         location,
         salary,

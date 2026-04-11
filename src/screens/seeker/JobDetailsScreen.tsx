@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from '../../components/common/Tooltip';
+import { DEFAULT_LOGO, getValidLogoUrl } from '../../utils/logoUtils';
 
 interface Props {
   navigation: any;
@@ -11,9 +12,36 @@ interface Props {
 }
 
 export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job: rawJob } = route.params;
   const { user, applyForJob, applications, saveJob } = useApp();
   const [isApplying, setIsApplying] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const job = useMemo(() => {
+    if (!rawJob) return null;
+    return {
+      ...rawJob,
+      companyLogo: getValidLogoUrl(rawJob.companyLogo)
+    };
+  }, [rawJob]);
+
+  useEffect(() => {
+    console.log('JobDetails rawJob.companyLogo:', rawJob?.companyLogo);
+    console.log('JobDetails fixed companyLogo:', job?.companyLogo);
+  }, [rawJob?.companyLogo, job?.companyLogo]);
+
+  if (!job) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text>Job not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const logoUrl = useMemo(() => {
+    const url = getValidLogoUrl(job.companyLogo);
+    return url;
+  }, [job.companyLogo]);
 
   const applicationStatus = useMemo((): 'pending' | 'approved' | 'rejected' | null => {
     if (!applications || !Array.isArray(applications)) return null;
@@ -102,7 +130,15 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
-          <Image source={{ uri: job.companyLogo }} style={styles.logo} />
+          <Image 
+            source={{ uri: imageError ? DEFAULT_LOGO : logoUrl }} 
+            style={styles.logo}
+            onError={(e) => {
+              console.log('Image load error:', e.nativeEvent.error);
+              setImageError(true);
+            }}
+            onLoad={() => setImageError(false)}
+          />
           <Text style={styles.title}>{job.title}</Text>
           <Text style={styles.company}>{job.company}</Text>
         </View>

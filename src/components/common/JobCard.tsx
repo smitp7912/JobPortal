@@ -1,8 +1,9 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, Text, View, Image, ActivityIndicator } from 'react-native';
 import { Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from './Tooltip';
+import { DEFAULT_LOGO, getValidLogoUrl } from '../../utils/logoUtils';
 
 interface JobCardProps {
   job: Job;
@@ -25,6 +26,7 @@ const JobCardComponent: React.FC<JobCardProps> = ({
   isSaved,
   onSave,
 }) => {
+  const [imageError, setImageError] = useState(false);
   const isDisabled = applicationStatus !== null && applicationStatus !== undefined;
 
   const getApplyButtonText = () => {
@@ -44,10 +46,22 @@ const JobCardComponent: React.FC<JobCardProps> = ({
       default: return styles.applyButton;
     }
   };
+  const getLogoUri = () => {
+    if (imageError) {
+      return DEFAULT_LOGO;
+    }
+    return getValidLogoUrl(job.companyLogo);
+  };
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <Image source={{ uri: job.companyLogo }} style={styles.logo} />
+        <Image 
+          source={{ uri: getLogoUri() }} 
+          style={styles.logo}
+          onError={() => setImageError(true)}
+          onLoad={() => setImageError(false)}
+        />
         <View style={styles.headerText}>
           <Text style={styles.title} numberOfLines={1}>{job.title}</Text>
           <Text style={styles.company}>{job.company}</Text>

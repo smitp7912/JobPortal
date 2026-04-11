@@ -67,6 +67,43 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const isWeb = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 
+const fixOldPlaceholderUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.includes('via.placeholder.com')) {
+    const match = url.match(/text=([A-Za-z0-9])/);
+    const letter = match ? match[1] : 'J';
+    return `https://placehold.co/100x100/2563EB/FFFFFF?text=${letter}`;
+  }
+  return url;
+};
+
+const migrateOldJobData = (jobs: any[]): any[] => {
+  return jobs.map(job => ({
+    ...job,
+    companyLogo: fixOldPlaceholderUrl(job.companyLogo)
+  }));
+};
+
+const clearOldCachedData = () => {
+  if (isWeb) {
+    const oldJobsKey = '@jobportal_jobs';
+    const oldData = localStorage.getItem(oldJobsKey);
+    if (oldData) {
+      try {
+        const jobs = JSON.parse(oldData);
+        const migratedJobs = migrateOldJobData(jobs);
+        localStorage.setItem(oldJobsKey, JSON.stringify(migratedJobs));
+      } catch (e) {
+        localStorage.removeItem(oldJobsKey);
+      }
+    }
+  }
+};
+
+if (isWeb) {
+  clearOldCachedData();
+}
+
 const getStoredUser = (): User | null => {
   if (isWeb) {
     const data = localStorage.getItem('jobportal_user');
@@ -125,7 +162,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (Array.isArray(jobsResponse)) {
         const normalizedJobs = jobsResponse.map(job => ({
           ...job,
-          id: getJobId(job)
+          id: getJobId(job),
+          companyLogo: fixOldPlaceholderUrl(job.companyLogo)
         }));
         setJobs(normalizedJobs);
         setIsBackendConnected(true);
@@ -143,7 +181,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (Array.isArray(response)) {
         const normalizedJobs = response.map(job => ({
           ...job,
-          id: getJobId(job)
+          id: getJobId(job),
+          companyLogo: fixOldPlaceholderUrl(job.companyLogo)
         }));
         setJobs(normalizedJobs);
       }
@@ -185,7 +224,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (Array.isArray(jobsResponse)) {
           const normalizedJobs = jobsResponse.map(job => ({
             ...job,
-            id: getJobId(job)
+            id: getJobId(job),
+            companyLogo: fixOldPlaceholderUrl(job.companyLogo)
           }));
           setJobs(normalizedJobs);
         }
@@ -230,7 +270,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (Array.isArray(jobsResponse)) {
           const normalizedJobs = jobsResponse.map(job => ({
             ...job,
-            id: getJobId(job)
+            id: getJobId(job),
+            companyLogo: fixOldPlaceholderUrl(job.companyLogo)
           }));
           setJobs(normalizedJobs);
         }
@@ -301,7 +342,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.createJob(user.token, {
         ...jobData,
-        companyLogo: jobData.companyLogo || `https://via.placeholder.com/100/2563EB/FFFFFF?text=${jobData.company.charAt(0)}`
+        companyLogo: jobData.companyLogo || `https://placehold.co/100x100/2563EB/FFFFFF?text=${encodeURIComponent(jobData.company.charAt(0))}`
       });
       
       if (response.job) {

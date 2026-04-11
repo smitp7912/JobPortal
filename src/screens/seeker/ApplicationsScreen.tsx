@@ -1,16 +1,29 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
+import { getValidLogoUrl } from '../../utils/logoUtils';
 
 interface Props {
   navigation: any;
 }
 
 export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, applications, jobs, refreshApplications } = useApp();
+  const { user, applications, jobs, refreshApplications, applyForJob } = useApp();
   const [refreshing, setRefreshing] = useState(false);
+
+  const getJobDetails = (jobId: string) => {
+    return jobs.find(j => j.id === jobId);
+  };
+
+  const getFixedJob = (job: any) => {
+    if (!job) return null;
+    return {
+      ...job,
+      companyLogo: getValidLogoUrl(job.companyLogo)
+    };
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -19,10 +32,6 @@ export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
   }, [refreshApplications]);
 
   const myApplications = applications.filter(app => app.seekerId === user?.id);
-
-  const getJobDetails = (jobId: string) => {
-    return jobs.find(j => j.id === jobId);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -42,6 +51,24 @@ export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const getButtonText = (status: string) => {
+    switch (status) {
+      case 'approved': return 'Accepted';
+      case 'rejected': return 'Rejected';
+      case 'pending': return 'Applied';
+      default: return 'Apply Now';
+    }
+  };
+
+  const getButtonStyle = (status: string) => {
+    switch (status) {
+      case 'approved': return styles.acceptedButton;
+      case 'rejected': return styles.rejectedButton;
+      case 'pending': return styles.pendingButton;
+      default: return styles.applyButton;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -54,28 +81,31 @@ export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
         keyExtractor={(item) => item._id || item.id || ''}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => {
-          const job = typeof item.jobId === 'object' ? item.jobId : getJobDetails(item.jobId as string);
+          const rawJob = typeof item.jobId === 'object' ? item.jobId : getJobDetails(item.jobId as string);
+          const job = getFixedJob(rawJob);
           if (!job) return null;
           return (
-            <TouchableOpacity 
-              style={styles.applicationCard}
-              onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job } })}
-            >
-              <View style={styles.cardHeader}>
-                <View>
-                  <Text style={styles.jobTitle}>{job.title}</Text>
-                  <Text style={styles.company}>{job.company}</Text>
+            <View style={styles.applicationCard}>
+              <TouchableOpacity 
+                style={styles.cardContent}
+                onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job } })}
+              >
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.jobTitle}>{job.title}</Text>
+                    <Text style={styles.company}>{job.company}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                    <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                  </View>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                  <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                <View style={styles.cardDetails}>
+                  <Text style={styles.detailText}>📍 {job.location}</Text>
+                  <Text style={styles.detailText}>💰 {job.salary}</Text>
                 </View>
-              </View>
-              <View style={styles.cardDetails}>
-                <Text style={styles.detailText}>📍 {job.location}</Text>
-                <Text style={styles.detailText}>💰 {job.salary}</Text>
-              </View>
-              <Text style={styles.appliedDate}>Applied on: {formatDate(item.appliedDate)}</Text>
-            </TouchableOpacity>
+                <Text style={styles.appliedDate}>Applied on: {formatDate(item.appliedDate)}</Text>
+              </TouchableOpacity>
+            </View>
           );
         }}
         contentContainerStyle={styles.listContent}
@@ -122,6 +152,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cardContent: {
+    flex: 1,
   },
   cardHeader: {
     flexDirection: 'row',

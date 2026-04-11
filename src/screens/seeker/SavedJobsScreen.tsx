@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../components/common/JobCard';
@@ -9,11 +9,39 @@ interface Props {
 }
 
 export const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, getSavedJobs } = useApp();
+  const { user, getSavedJobs, applyForJob, applications, saveJob } = useApp();
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
   
   const savedJobs = useMemo(() => {
     return getSavedJobs();
   }, [user?.profile?.savedJobs, getSavedJobs]);
+
+  const getApplicationStatus = useCallback((jobId: string): 'pending' | 'approved' | 'rejected' | null => {
+    if (!applications || !Array.isArray(applications)) return null;
+    const app = applications.find(app => {
+      if (!app || !app.jobId || !app.seekerId) return false;
+      const jobIdValue = typeof app.jobId === 'object' ? app.jobId._id || app.jobId.id : app.jobId;
+      return jobIdValue === jobId && app.seekerId === user?.id;
+    });
+    return app?.status || null;
+  }, [applications, user?.id]);
+
+  const handleApply = useCallback(async (jobId: string) => {
+    const status = getApplicationStatus(jobId);
+    if (status) return;
+    setApplyingJobId(jobId);
+    await applyForJob(jobId);
+    setApplyingJobId(null);
+  }, [applyForJob, getApplicationStatus]);
+
+  const handleSave = useCallback(async (jobId: string) => {
+    await saveJob(jobId);
+  }, [saveJob]);
+
+  const isSaved = useCallback((jobId: string) => {
+    const seeker = user?.profile;
+    return seeker?.savedJobs?.includes(jobId);
+  }, [user?.profile]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -29,6 +57,12 @@ export const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
           <JobCard
             job={item}
             onPress={() => navigation.navigate('Saved', { screen: 'JobDetails', params: { job: item } })}
+            showApplyButton
+            onApply={() => handleApply(item.id)}
+            applicationStatus={getApplicationStatus(item.id)}
+            isApplying={applyingJobId === item.id}
+            onSave={() => handleSave(item.id)}
+            isSaved={isSaved(item.id)}
           />
         )}
         contentContainerStyle={styles.listContent}
