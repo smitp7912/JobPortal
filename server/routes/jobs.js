@@ -8,6 +8,24 @@ function isDbConnected() {
   return mongoose.connection.readyState === 1;
 }
 
+function fixPlaceholderUrl(url) {
+  if (!url) return url;
+  if (url.includes('via.placeholder.com')) {
+    const match = url.match(/text=([A-Za-z0-9])/);
+    const letter = match ? match[1] : 'J';
+    return `https://placehold.co/100x100/2563EB/FFFFFF?text=${letter}`;
+  }
+  return url;
+}
+
+function sanitizeJob(job) {
+  if (!job) return job;
+  return {
+    ...job.toObject(),
+    companyLogo: fixPlaceholderUrl(job.companyLogo)
+  };
+}
+
 // Helper to verify token
 async function verifyToken(token) {
   if (!isDbConnected()) return null;
@@ -43,7 +61,7 @@ router.get('/', async (req, res) => {
     }
 
     const jobs = await Job.find(query).sort({ postedDate: -1 });
-    res.json(jobs);
+    res.json(jobs.map(sanitizeJob));
   } catch (error) {
     res.status(500).json({ message: 'Error fetching jobs', error: error.message });
   }
@@ -60,7 +78,7 @@ router.get('/:id', async (req, res) => {
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
-    res.json(job);
+    res.json(sanitizeJob(job));
   } catch (error) {
     res.status(500).json({ message: 'Error fetching job', error: error.message });
   }
@@ -84,9 +102,15 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ message: 'Only recruiters can post jobs' });
     }
 
+    const jobData = { ...req.body };
+    if (!jobData.companyLogo || jobData.companyLogo.includes('via.placeholder.com')) {
+      const letter = jobData.company ? jobData.company.charAt(0).toUpperCase() : 'J';
+      jobData.companyLogo = `https://placehold.co/100x100/2563EB/FFFFFF?text=${letter}`;
+    }
+
     const job = new Job({
       recruiterId: user._id,
-      ...req.body
+      ...jobData
     });
 
     await job.save();
@@ -175,7 +199,7 @@ router.get('/my-jobs', async (req, res) => {
     }
 
     const jobs = await Job.find({ recruiterId: user._id }).sort({ postedDate: -1 });
-    res.json(jobs);
+    res.json(jobs.map(sanitizeJob));
   } catch (error) {
     res.status(500).json({ message: 'Error fetching jobs', error: error.message });
   }
