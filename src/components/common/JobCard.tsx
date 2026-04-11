@@ -25,8 +25,7 @@ const JobCardComponent: React.FC<JobCardProps> = ({
   isSaved,
   onSave,
 }) => {
-  const isApplied = applicationStatus !== null && applicationStatus !== undefined;
-  const isDisabled = isApplied && (applicationStatus === 'approved' || applicationStatus === 'rejected');
+  const isDisabled = applicationStatus !== null && applicationStatus !== undefined;
 
   const getApplyButtonText = () => {
     switch (applicationStatus) {

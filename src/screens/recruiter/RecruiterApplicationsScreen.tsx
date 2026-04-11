@@ -199,6 +199,13 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
                 </View>
               )}
 
+              <TouchableOpacity
+                style={styles.viewProfileButton}
+                onPress={() => navigation.navigate('ApplicantProfile', { seekerId: item.seekerId })}
+              >
+                <Text style={styles.viewProfileText}>View Full Profile →</Text>
+              </TouchableOpacity>
+
               {item.status === 'pending' && (
                 <View style={styles.actions}>
                   <TouchableOpacity
@@ -399,5 +406,19 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
+  },
+  viewProfileButton: {
+    marginTop: 12,
+    marginBottom: 12,
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewProfileText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

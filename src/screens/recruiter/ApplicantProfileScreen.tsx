@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../../context/AppContext';
 
@@ -8,16 +8,44 @@ interface Props {
   route: any;
 }
 
+interface ProfileData {
+  name?: string;
+  phone?: string;
+  location?: string;
+  email?: string;
+  education?: Array<{
+    institution: string;
+    degree: string;
+    year: string;
+    _id?: string;
+  }>;
+  experience?: Array<{
+    company: string;
+    position: string;
+    duration: string;
+    description: string;
+    _id?: string;
+  }>;
+  skills?: string[];
+  resumeUri?: string;
+}
+
 export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
   const { seekerId } = route.params;
   const { getApplicantProfile } = useApp();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       const data = await getApplicantProfile(seekerId);
-      setProfile(data);
+      if (data) {
+        if (data.profile) {
+          setProfile({ ...data.profile, email: data.email });
+        } else {
+          setProfile(data);
+        }
+      }
       setLoading(false);
     };
     fetchProfile();

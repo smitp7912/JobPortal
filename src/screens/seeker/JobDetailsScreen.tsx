@@ -26,7 +26,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [applications, job.id, user?.id]);
 
   const isApplied = applicationStatus !== null;
-  const isDisabled = isApplied && (applicationStatus === 'approved' || applicationStatus === 'rejected');
+  const isDisabled = applicationStatus !== null && applicationStatus !== undefined;
 
   const isSaved = useMemo(() => 
     user?.profile?.savedJobs?.includes(job.id) || false

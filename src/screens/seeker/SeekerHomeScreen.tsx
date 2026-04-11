@@ -39,7 +39,7 @@ export const SeekerHomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleApply = useCallback(async (jobId: string) => {
     if (!applications || !Array.isArray(applications)) return;
     const status = getApplicationStatus(jobId);
-    if (status === 'approved' || status === 'rejected') return;
+    if (status) return;
     setApplyingJobId(jobId);
     await applyForJob(jobId);
     setApplyingJobId(null);
