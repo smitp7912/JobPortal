@@ -20,6 +20,7 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedJobType, setSelectedJobType] = useState('');
   const [requirements, setRequirements] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const requirementsList = useMemo(() => 
     requirements.split(',').map(r => r.trim()).filter(r => r),
@@ -45,15 +46,23 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
         jobType: selectedJobType,
         requirements: requirementsList,
       });
-      Alert.alert('Success', 'Job posted successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setTitle('');
+      setCompany(user?.companyName || '');
+      setDescription('');
+      setLocation('');
+      setSalary('');
+      setSelectedCategory('');
+      setSelectedJobType('');
+      setRequirements('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to post job');
+      console.error('Post job error:', error);
+      Alert.alert('Error', error.message || 'Failed to post job. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [title, company, description, location, salary, selectedCategory, selectedJobType, requirementsList, postJob, navigation]);
+  }, [title, company, description, location, salary, selectedCategory, selectedJobType, requirementsList, postJob, navigation, user]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -62,6 +71,12 @@ export const PostJobScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.title}>Post a New Job</Text>
           <Text style={styles.subtitle}>Find the perfect candidate</Text>
         </View>
+
+        {showSuccess && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>Job posted successfully!</Text>
+          </View>
+        )}
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
@@ -239,5 +254,18 @@ const styles = StyleSheet.create({
   },
   optionTextActive: {
     color: '#fff',
+  },
+  successBanner: {
+    backgroundColor: '#10B981',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  successText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

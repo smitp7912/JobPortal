@@ -294,7 +294,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const postJob = async (jobData: Omit<Job, '_id' | 'id' | 'recruiterId' | 'postedDate' | 'applicants'>) => {
-    if (!user?.token) return;
+    if (!user?.token) {
+      throw new Error('You are not logged in. Please log in again.');
+    }
     
     try {
       const response = await api.createJob(user.token, {
@@ -305,8 +307,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (response.job) {
         setJobs([response.job, ...jobs]);
       }
+      return response;
     } catch (error) {
       console.error('Error posting job:', error);
+      throw error;
     }
   };
 

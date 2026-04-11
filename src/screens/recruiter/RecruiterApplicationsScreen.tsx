@@ -16,6 +16,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
   const [seekerProfiles, setSeekerProfiles] = useState<Record<string, any>>({});
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const myJobs = useMemo(() => 
     jobs.filter(job => job.recruiterId === user?.id),
@@ -83,7 +84,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
     return jobs.find(j => j.id === jobId);
   };
 
-  const handleStatusUpdate = (applicationId: string, status: 'approved' | 'rejected') => {
+  const handleStatusUpdate = async (applicationId: string, status: 'approved' | 'rejected') => {
     const action = status === 'approved' ? 'approve' : 'reject';
     Alert.alert(
       `${status === 'approved' ? 'Approve' : 'Reject'} Application`,
@@ -93,8 +94,16 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
         {
           text: 'Confirm',
           onPress: async () => {
-            await updateApplicationStatus(applicationId, status);
-            Alert.alert('Success', `Application ${status}!`);
+            setUpdatingId(applicationId);
+            try {
+              await updateApplicationStatus(applicationId, status);
+              Alert.alert('Success', `Application ${status} successfully!`);
+            } catch (error: any) {
+              console.error('Status update error:', error);
+              Alert.alert('Error', error.message || 'Failed to update status. Please try again.');
+            } finally {
+              setUpdatingId(null);
+            }
           },
         },
       ]
@@ -193,16 +202,22 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
               {item.status === 'pending' && (
                 <View style={styles.actions}>
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.approveButton]}
+                    style={[styles.actionButton, styles.approveButton, updatingId === (item._id || item.id) && styles.actionButtonDisabled]}
                     onPress={() => handleStatusUpdate(item._id || item.id || '', 'approved')}
+                    disabled={updatingId === (item._id || item.id)}
                   >
-                    <Text style={styles.actionButtonText}>✓ Approve</Text>
+                    <Text style={styles.actionButtonText}>
+                      {updatingId === (item._id || item.id) ? '...' : '✓ Approve'}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.rejectButton]}
+                    style={[styles.actionButton, styles.rejectButton, updatingId === (item._id || item.id) && styles.actionButtonDisabled]}
                     onPress={() => handleStatusUpdate(item._id || item.id || '', 'rejected')}
+                    disabled={updatingId === (item._id || item.id)}
                   >
-                    <Text style={styles.actionButtonText}>✕ Reject</Text>
+                    <Text style={styles.actionButtonText}>
+                      {updatingId === (item._id || item.id) ? '...' : '✕ Reject'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -373,6 +388,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   emptyContainer: {
     padding: 40,

@@ -67,7 +67,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json', 'token': token },
       body: JSON.stringify(jobData)
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Server error: ${response.status}`);
+    }
+    return data;
   },
 
   deleteJob: async (token, jobId) => {
@@ -118,7 +122,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json', 'token': token },
       body: JSON.stringify({ status })
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Server error: ${response.status}`);
+    }
+    return data;
   },
 
   getSeekerProfile: async (token, seekerId) => {
