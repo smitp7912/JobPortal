@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const streamifier = require('streamifier');
 const User = require('../models/User');
 
 cloudinary.config({
@@ -16,9 +14,7 @@ function isDbConnected() {
   return mongoose.connection.readyState === 1;
 }
 
-const upload = multer({ storage: multer.memoryStorage() });
-
-router.post('/resume', upload.single('resume'), async (req, res) => {
+router.post('/resume', async (req, res) => {
   try {
     if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected. Please try again later.' });
@@ -34,23 +30,22 @@ router.post('/resume', upload.single('resume'), async (req, res) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    const { base64Data, fileName } = req.body;
+    
+    if (!base64Data) {
+      return res.status(400).json({ message: 'No file data provided' });
     }
 
-    if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ message: 'Only PDF files are allowed' });
-    }
-
-    if (req.file.size > 5 * 1024 * 1024) {
+    const buffer = Buffer.from(base64Data.replace(/^data:application\/pdf;base64,/, ''), 'base64');
+    
+    if (buffer.length > 5 * 1024 * 1024) {
       return res.status(400).json({ message: 'File size must be less than 5MB' });
     }
 
-    const fileName = req.file.originalname;
     const publicId = `resumes/${user._id}_${Date.now()}`;
 
     const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
+      cloudinary.uploader.upload_stream(
         {
           resource_type: 'raw',
           public_id: publicId,
@@ -63,19 +58,17 @@ router.post('/resume', upload.single('resume'), async (req, res) => {
             resolve(result);
           }
         }
-      );
-
-      streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      ).end(buffer);
     });
 
     user.profile.resumeUrl = uploadResult.secure_url;
-    user.profile.resumeFileName = fileName;
+    user.profile.resumeFileName = fileName || 'resume.pdf';
     await user.save();
 
     res.json({
       message: 'Resume uploaded successfully',
       resumeUrl: uploadResult.secure_url,
-      resumeFileName: fileName
+      resumeFileName: fileName || 'resume.pdf'
     });
   } catch (error) {
     console.error('Error uploading resume:', error);
