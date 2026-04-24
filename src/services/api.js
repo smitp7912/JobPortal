@@ -82,6 +82,19 @@ export const api = {
     return response.json();
   },
 
+  updateJob: async (token, jobId, jobData) => {
+    const response = await fetch(`${API_URL}/api/jobs/${jobId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'token': token },
+      body: JSON.stringify(jobData)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Server error: ${response.status}`);
+    }
+    return data;
+  },
+
   getMyJobs: async (token) => {
     const response = await fetch(`${API_URL}/api/jobs/my-jobs`, {
       headers: { 'token': token }

@@ -81,7 +81,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
   }, [allApplications, fetchProfiles]);
 
   const getJobDetails = (jobId: string) => {
-    return jobs.find(j => j.id === jobId);
+    return jobs.find(j => j.id === jobId || j._id === jobId);
   };
 
   const handleStatusUpdate = async (applicationId: string, status: 'approved' | 'rejected') => {
@@ -130,7 +130,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
         <FlatList
           horizontal
           data={[{ id: 'all', name: 'All Jobs' }, ...myJobs]}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id || item.id || ''}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -182,6 +182,12 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
               <View style={styles.jobInfo}>
                 <Text style={styles.jobTitle}>Applied for: {job?.title}</Text>
                 <Text style={styles.appliedDate}>Applied on: {formatDate(item.appliedDate)}</Text>
+                <TouchableOpacity 
+                  style={styles.viewJobButton}
+                  onPress={() => navigation.navigate('JobDetails', { job: job })}
+                >
+                  <Text style={styles.viewJobText}>👁️ View Job</Text>
+                </TouchableOpacity>
               </View>
 
               {profile && (
@@ -357,6 +363,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 4,
+  },
+  viewJobButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  viewJobText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
   },
   profilePreview: {
     backgroundColor: '#f5f5f5',

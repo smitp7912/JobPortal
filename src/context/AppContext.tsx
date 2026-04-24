@@ -53,6 +53,7 @@ interface AppContextType {
   switchRole: () => void;
   updateProfile: (profile: any) => Promise<void>;
   postJob: (job: Omit<Job, '_id' | 'id' | 'recruiterId' | 'postedDate' | 'applicants'>) => Promise<void>;
+  updateJob: (jobId: string, job: Partial<Job>) => Promise<any>;
   applyForJob: (jobId: string) => Promise<any>;
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   getApplicantProfile: (seekerId: string) => any;
@@ -355,6 +356,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateJob = async (jobId: string, jobData: Partial<Job>) => {
+    if (!user?.token) {
+      throw new Error('You are not logged in. Please log in again.');
+    }
+    
+    try {
+      const response = await api.updateJob(user.token, jobId, jobData);
+      
+      if (response.job) {
+        setJobs(jobs.map(j => (j._id === jobId || j.id === jobId) ? response.job : j));
+      }
+      return response;
+    } catch (error) {
+      console.error('Error updating job:', error);
+      throw error;
+    }
+  };
+
   const applyForJob = async (jobId: string) => {
     if (!user?.token) {
       return { message: 'Please login first', error: true };
@@ -416,7 +435,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       await api.deleteJob(user.token, jobId);
-      setJobs(jobs.filter(j => j._id !== jobId));
+      setJobs(jobs.filter(j => j._id !== jobId && j.id !== jobId));
     } catch (error) {
       console.error('Error deleting job:', error);
     }
@@ -464,6 +483,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     switchRole,
     updateProfile,
     postJob,
+    updateJob,
     applyForJob,
     updateApplicationStatus,
     getApplicantProfile,

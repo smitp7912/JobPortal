@@ -92,7 +92,7 @@ export const SeekerHomeScreen: React.FC<Props> = ({ navigation }) => {
 
       <FlatList
         data={filteredJobs}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
         renderItem={({ item }) => (
           <JobCard
             job={item}

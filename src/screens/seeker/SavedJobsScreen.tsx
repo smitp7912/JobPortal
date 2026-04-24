@@ -52,7 +52,7 @@ export const SavedJobsScreen: React.FC<Props> = ({ navigation }) => {
 
       <FlatList
         data={savedJobs}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
         renderItem={({ item }) => (
           <JobCard
             job={item}

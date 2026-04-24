@@ -6,6 +6,7 @@ import { RecruiterDashboardScreen } from '../screens/recruiter/RecruiterDashboar
 import { RecruiterApplicationsScreen } from '../screens/recruiter/RecruiterApplicationsScreen';
 import { PostJobScreen } from '../screens/recruiter/PostJobScreen';
 import { ApplicantProfileScreen } from '../screens/recruiter/ApplicantProfileScreen';
+import { JobDetailsScreen } from '../screens/seeker/JobDetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -17,6 +18,11 @@ const ApplicationsStack = () => (
       name="ApplicantProfile" 
       component={ApplicantProfileScreen}
       options={{ headerShown: true, title: 'Applicant Profile' }}
+    />
+    <Stack.Screen 
+      name="JobDetails" 
+      component={JobDetailsScreen}
+      options={{ headerShown: true, title: 'Job Details' }}
     />
   </Stack.Navigator>
 );

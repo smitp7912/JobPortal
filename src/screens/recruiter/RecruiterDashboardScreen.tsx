@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from '../../components/common/Tooltip';
@@ -34,7 +35,15 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const applicationCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     myJobs.forEach(job => {
-      counts[job.id] = applications.filter(app => getJobId(app.jobId) === job.id).length;
+      const jobId = job._id || job.id;
+      const count = applications.filter(app => {
+        const appJobId = getJobId(app.jobId);
+        return appJobId === jobId;
+      }).length;
+      counts[jobId] = count;
+      if (job.id && job.id !== jobId) {
+        counts[job.id] = count;
+      }
     });
     return counts;
   }, [myJobs, applications, getJobId]);
@@ -42,7 +51,7 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const pendingCount = useMemo(() => 
     applications.filter(app => {
       const appJobId = getJobId(app.jobId);
-      return myJobs.some(j => j.id === appJobId) && app.status === 'pending';
+      return myJobs.some(j => (j._id || j.id) === appJobId) && app.status === 'pending';
     }).length,
     [applications, myJobs, getJobId]
   );
@@ -50,17 +59,22 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const approvedCount = useMemo(() => 
     applications.filter(app => {
       const appJobId = getJobId(app.jobId);
-      return myJobs.some(j => j.id === appJobId) && app.status === 'approved';
+      return myJobs.some(j => (j._id || j.id) === appJobId) && app.status === 'approved';
     }).length,
     [applications, myJobs, getJobId]
   );
 
   const handleDeleteJob = useCallback((jobId: string) => {
-    Alert.alert('Delete Job', 'Are you sure you want to delete this job?', [
+    const count = applicationCounts[jobId] || 0;
+    const message = count > 0 
+      ? `${count} application(s) are available on this job. Are you sure you want to delete it?`
+      : 'Are you sure you want to delete this job?';
+    
+    Alert.alert('Delete Job', message, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteJob(jobId) },
     ]);
-  }, [deleteJob]);
+  }, [deleteJob, applicationCounts]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -128,23 +142,26 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
       <FlatList
         data={myJobs}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.jobCard}
-            onPress={() => navigation.navigate('Applications', { screen: 'ApplicationsList', params: { jobId: item.id } })}
+            onPress={() => navigation.navigate('Applications', { screen: 'ApplicationsList', params: { jobId: item._id || item.id } })}
           >
             <View style={styles.jobHeader}>
               <View style={styles.jobInfo}>
                 <Text style={styles.jobTitle}>{item.title}</Text>
                 <Text style={styles.jobCompany}>{item.company}</Text>
               </View>
-              <Tooltip tooltip="Delete this job posting">
-                <TouchableOpacity onPress={() => handleDeleteJob(item.id)}>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity onPress={() => navigation.navigate('PostJob', { job: item })}>
+                  <Text style={styles.editIcon}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteJob(item._id || item.id)}>
                   <Text style={styles.deleteIcon}>🗑️</Text>
                 </TouchableOpacity>
-              </Tooltip>
+              </View>
             </View>
             <View style={styles.jobDetails}>
               <Text style={styles.jobDetail}>📍 {item.location}</Text>
@@ -153,7 +170,7 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.applicationCount}>
               <Text style={styles.applicationCountText}>
-                {applicationCounts[item.id] || 0} application(s)
+                {applicationCounts[item._id || item.id] || 0} application(s)
               </Text>
               <Text style={styles.postedDate}>Posted: {formatDate(item.postedDate)}</Text>
             </View>
@@ -290,6 +307,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editIcon: {
+    fontSize: 20,
   },
   deleteIcon: {
     fontSize: 20,
