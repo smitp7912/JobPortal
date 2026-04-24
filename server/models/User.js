@@ -34,6 +34,8 @@ const userSchema = new mongoose.Schema({
     }],
     skills: [String],
     resumeUri: String,
+    resumeUrl: String,
+    resumeFileName: String,
     savedJobs: [String]
   },
   companyName: String,

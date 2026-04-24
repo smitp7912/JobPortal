@@ -6,6 +6,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const applicationRoutes = require('./routes/applications');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
@@ -14,10 +15,12 @@ app.use(express.json());
 
 console.log('Starting server...');
 console.log('MongoDB URI:', process.env.MONGODB_URI ? 'set' : 'NOT SET');
+console.log('Cloudinary:', process.env.CLOUDINARY_CLOUD_NAME ? 'configured' : 'NOT SET');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.get('/', (req, res) => {
   res.send('JobPortal API is running');
