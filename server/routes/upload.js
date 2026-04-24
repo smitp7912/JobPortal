@@ -14,10 +14,54 @@ function isDbConnected() {
   return mongoose.connection.readyState === 1;
 }
 
+router.get('/config', async (req, res) => {
+  res.json({
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+    apiSecretSet: !!process.env.CLOUDINARY_API_SECRET
+  });
+});
+
+router.post('/get-signed-url', async (req, res) => {
+  try {
+    const { token } = req.headers;
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const user = await User.findOne({ token });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    const publicId = `resumes/${user._id}_${timestamp}`;
+    
+    const signature = cloudinary.utils.api_sign_request({
+      timestamp: timestamp,
+      public_id: publicId,
+      file: 'resume.pdf',
+      resource_type: 'raw'
+    }, process.env.CLOUDINARY_API_SECRET);
+
+    res.json({
+      timestamp,
+      signature,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      publicId,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/raw/upload`
+    });
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+    res.status(500).json({ message: 'Error getting signed URL', error: error.message });
+  }
+});
+
 router.post('/resume', async (req, res) => {
   try {
     if (!isDbConnected()) {
-      return res.status(503).json({ message: 'Database not connected. Please try again later.' });
+      return res.status(503).json({ message: 'Database not connected' });
     }
 
     const { token } = req.headers;
@@ -30,49 +74,24 @@ router.post('/resume', async (req, res) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    const { base64Data, fileName } = req.body;
+    const { resumeUrl, fileName } = req.body;
     
-    if (!base64Data) {
-      return res.status(400).json({ message: 'No file data provided' });
+    if (!resumeUrl) {
+      return res.status(400).json({ message: 'No resume URL provided' });
     }
 
-    const buffer = Buffer.from(base64Data.replace(/^data:application\/pdf;base64,/, ''), 'base64');
-    
-    if (buffer.length > 5 * 1024 * 1024) {
-      return res.status(400).json({ message: 'File size must be less than 5MB' });
-    }
-
-    const publicId = `resumes/${user._id}_${Date.now()}`;
-
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'raw',
-          public_id: publicId,
-          format: 'pdf'
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      ).end(buffer);
-    });
-
-    user.profile.resumeUrl = uploadResult.secure_url;
+    user.profile.resumeUrl = resumeUrl;
     user.profile.resumeFileName = fileName || 'resume.pdf';
     await user.save();
 
     res.json({
-      message: 'Resume uploaded successfully',
-      resumeUrl: uploadResult.secure_url,
-      resumeFileName: fileName || 'resume.pdf'
+      message: 'Resume saved successfully',
+      resumeUrl: user.profile.resumeUrl,
+      resumeFileName: user.profile.resumeFileName
     });
   } catch (error) {
-    console.error('Error uploading resume:', error);
-    res.status(500).json({ message: 'Error uploading resume', error: error.message });
+    console.error('Error saving resume:', error);
+    res.status(500).json({ message: 'Error saving resume', error: error.message });
   }
 });
 
