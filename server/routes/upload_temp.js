@@ -22,7 +22,7 @@ router.get('/config', async (req, res) => {
   });
 });
 
-router.post('/get-signed-url', async (req, res) => {
+router.post('/get- signed-url', async (req, res) => {
   try {
     const { token } = req.headers;
     if (!token) {
@@ -34,13 +34,13 @@ router.post('/get-signed-url', async (req, res) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    const timestamp = Math.round((new Date()).getTime() / 1000);
+    const timestamp = Math. round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
     
     const signature = cloudinary.utils.api_sign_request({
       timestamp: timestamp,
-      public_id: publicId
-    }, process.env.CLOUDINARY_API_SECRET);
+      public_ id: publicId
+    }, process.env.CLOUDINARY_ API_SECRET);
 
     res.json({
       timestamp,
@@ -48,7 +48,7 @@ router.post('/get-signed-url', async (req, res) => {
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
       publicId,
-      uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/raw/upload`
+      uploadUrl: `https://api.cloudinary. com/${process.env.CLOUDINARY_CLOUD_NAME}/raw/upload`
     });
   } catch (error) {
     console.error('Error getting signed URL:', error);
@@ -79,7 +79,7 @@ router.post('/resume', async (req, res) => {
     }
 
     user.profile.resumeUrl = resumeUrl;
-    user.profile.resumeFileName = fileName || 'resume.pdf';
+    user.profile.resumeFileName = fileName || 'resume. pdf';
     await user.save();
 
     res.json({
@@ -118,15 +118,15 @@ router.post('/resume/upload', async (req, res) => {
     const publicId = `resumes/${user._id}_${timestamp}`;
 
     const uploadResult = await cloudinary.uploader.upload(fileData, {
-      resource_type: 'raw',
-      public_id: publicId,
-      format: 'pdf',
-      use_filename: false,
-      unique_filename: false,
+      resource_ type: ' raw',
+      public_ id: publicId,
+      format: ' pdf',
+      use_ filename: false,
+      unique_ filename: false,
     });
 
     user.profile.resumeUrl = uploadResult.secure_url;
-    user.profile.resumeFileName = fileName || 'resume.pdf';
+    user.profile.resumeFileName = fileName || 'resume. pdf';
     await user.save();
 
     res.json({
@@ -166,7 +166,7 @@ router.get('/resume/url', async (req, res) => {
       .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '');
 
     const signedUrl = cloudinary.url(publicId, {
-      resource_type: 'raw',
+      resource_ type: ' raw',
       sign_url: true,
       secure: true
     });
@@ -200,7 +200,7 @@ router.delete('/resume', async (req, res) => {
     if (user.profile.resumeUrl) {
       const publicId = user.profile.resumeUrl.split('/').pop().split('.')[0];
       try {
-        await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+        await cloudinary.uploader.destroy(publicId, { resource_ type: ' raw' });
       } catch (e) {
         console.log('Cloudinary delete error (ignoring):', e.message);
       }
@@ -217,4 +217,4 @@ router.delete('/resume', async (req, res) => {
   }
 });
 
-module.exports = router;
+module. exports = router;
