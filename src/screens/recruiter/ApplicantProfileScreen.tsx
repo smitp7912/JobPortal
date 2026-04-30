@@ -35,7 +35,7 @@ interface ProfileData {
 
 export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
   const { seekerId } = route.params;
-  const { getApplicantProfile } = useApp();
+  const { getApplicantProfile, getApplicantResumeUrl } = useApp();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,22 +55,30 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
   }, [seekerId, getApplicantProfile]);
 
   const handleViewResume = useCallback(async () => {
-    const url = profile?.resumeUrl || profile?.resumeUri;
-    if (url) {
-      try {
-        const canOpen = await Linking.canOpenURL(url);
-        if (canOpen) {
-          await Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'Cannot open this resume link');
-        }
-      } catch (error) {
-        Alert.alert('Error', 'Failed to open resume');
-      }
-    } else {
+    if (!profile?.resumeUrl && !profile?.resumeUri) {
       Alert.alert('No Resume', 'This applicant has not uploaded a resume');
+      return;
     }
-  }, [profile?.resumeUrl, profile?.resumeUri]);
+
+    try {
+      const resumeData = await getApplicantResumeUrl(seekerId);
+      const url = resumeData?.resumeUrl || profile.resumeUrl || profile.resumeUri;
+      
+      if (!url) {
+        Alert.alert('Error', 'Resume URL not available');
+        return;
+      }
+
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open this resume link');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open resume');
+    }
+  }, [profile?.resumeUrl, profile?.resumeUri, seekerId, getApplicantResumeUrl]);
 
   if (loading) {
     return (

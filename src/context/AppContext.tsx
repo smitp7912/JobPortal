@@ -57,6 +57,7 @@ interface AppContextType {
   applyForJob: (jobId: string) => Promise<any>;
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   getApplicantProfile: (seekerId: string) => any;
+  getApplicantResumeUrl: (seekerId: string) => Promise<{ resumeUrl?: string; resumeFileName?: string } | null>;
   deleteJob: (jobId: string) => Promise<void>;
   saveJob: (jobId: string) => Promise<void>;
   getSavedJobs: () => Job[];
@@ -430,6 +431,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.token]);
 
+  const getApplicantResumeUrl = useCallback(async (seekerId: string) => {
+    if (!user?.token) return null;
+    
+    try {
+      const response = await api.getApplicantResumeUrl(user.token, seekerId);
+      return response;
+    } catch (error) {
+      console.error('Error getting applicant resume URL:', error);
+      return null;
+    }
+  }, [user?.token]);
+
   const deleteJob = async (jobId: string) => {
     if (!user?.token) return;
     
@@ -487,6 +500,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     applyForJob,
     updateApplicationStatus,
     getApplicantProfile,
+    getApplicantResumeUrl,
     deleteJob,
     saveJob,
     getSavedJobs,

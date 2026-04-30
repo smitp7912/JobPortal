@@ -189,4 +189,51 @@ router.get('/seeker/:seekerId', async (req, res) => {
   }
 });
 
+// Get signed resume URL for applicant (for recruiter)
+router.get('/seeker/:seekerId/resume-url', async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
+    const { token } = req.headers;
+    
+    const user = await verifyToken(token);
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const seeker = await User.findById(req.params.seekerId);
+    if (!seeker) {
+      return res.status(404).json({ message: 'Seeker not found' });
+    }
+
+    if (!seeker.profile?.resumeUrl) {
+      return res.status(404).json({ message: 'No resume found' });
+    }
+
+    const cloudinary = require('cloudinary').v2;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    
+    let publicId = seeker.profile.resumeUrl
+      .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+      .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+      .replace(`https://res.cloudinary.com/${cloudName}/image/upload/`, '')
+      .replace(`http://res.cloudinary.com/${cloudName}/image/upload/`, '');
+
+    const signedUrl = cloudinary.url(publicId, {
+      resource_type: 'raw',
+      sign_url: true,
+      secure: true
+    });
+
+    res.json({
+      resumeUrl: signedUrl,
+      resumeFileName: seeker.profile.resumeFileName
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting resume URL', error: error.message });
+  }
+});
+
 module.exports = router;

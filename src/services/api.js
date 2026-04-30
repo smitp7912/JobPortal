@@ -147,9 +147,16 @@ export const api = {
       headers: { 'token': token }
     });
     return response.json();
+},
+
+  getApplicantResumeUrl: async (token, seekerId) => {
+    const response = await fetch(`${API_URL}/api/applications/seeker/${seekerId}/resume-url`, {
+      headers: { 'token': token }
+    });
+    return response.json();
   },
 
-uploadResume: async (token, base64Data, fileName) => {
+  uploadResume: async (token, base64Data, fileName) => {
     try {
       const response = await fetch(`${API_URL}/api/upload/resume/upload`, {
         method: 'POST',
