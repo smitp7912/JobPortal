@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../../components/common/Button';
+import api from '../../services/api';
 
 interface Props {
   navigation: any;
@@ -40,7 +42,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [education, setEducation] = useState<Education[]>(user?.profile?.education || []);
   const [experience, setExperience] = useState<Experience[]>(user?.profile?.experience || []);
   const [skills, setSkills] = useState(user?.profile?.skills?.join(', ') || '');
-  const [resumeUri, setResumeUri] = useState(user?.profile?.resumeUri || '');
+  const [resumeUrl, setResumeUrl] = useState(user?.profile?.resumeUrl || '');
+  const [resumeFileName, setResumeFileName] = useState(user?.profile?.resumeFileName || '');
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   const handleSave = async () => {
     const profile = {
@@ -50,7 +54,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       education,
       experience,
       skills: skills.split(',').map((s: string) => s.trim()).filter((s: string) => s),
-      resumeUri,
+      resumeUrl,
+      resumeFileName,
     };
     await updateProfile(profile);
     setIsEditing(false);
@@ -63,11 +68,32 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         type: ['application/pdf'],
       });
       if (!result.canceled) {
-        setResumeUri(result.assets[0].uri);
-        Alert.alert('Success', 'Resume uploaded successfully!');
+        const file = result.assets[0];
+        const fileName = file.name || 'resume.pdf';
+        
+        setUploadingResume(true);
+        
+        const resumeFile = new File(file.uri);
+        const base64Data = await resumeFile.base64();
+        
+        const base64File = `data:application/pdf;base64,${base64Data}`;
+        
+        const response = await api.uploadResume(user?.token, base64File, fileName);
+        
+        setUploadingResume(false);
+        console.log(response);
+        if (response.resumeUrl) {
+          setResumeUrl(response.resumeUrl);
+          setResumeFileName(response.resumeFileName);
+          Alert.alert('Success', 'Resume uploaded successfully!');
+        } else {
+          Alert.alert('Error', response.message || 'Failed to upload resume');
+        }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick document');
+      setUploadingResume(false);
+      console.log(error);
+      Alert.alert('Error', 'Failed to upload resume');
     }
   };
 
@@ -165,11 +191,21 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Resume</Text>
           </View>
-          <TouchableOpacity style={styles.uploadButton} onPress={pickResume}>
-            <Text style={styles.uploadButtonText}>
-              {resumeUri ? '📄 Resume Uploaded' : '📤 Upload Resume (PDF)'}
-            </Text>
-          </TouchableOpacity>
+          {uploadingResume ? (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.uploadingText}>Uploading resume...</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.uploadButton} onPress={pickResume}>
+              <Text style={styles.uploadButtonText}>
+                {resumeUrl ? '📄 Resume Uploaded' : '📤 Upload Resume (PDF)'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {resumeFileName && (
+            <Text style={styles.fileNameText}>{resumeFileName}</Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -445,5 +481,25 @@ const styles = StyleSheet.create({
   logoutSection: {
     padding: 16,
     marginTop: 10,
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+  },
+  uploadingText: {
+    marginLeft: 8,
+    color: '#2563EB',
+    fontSize: 14,
+  },
+  fileNameText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

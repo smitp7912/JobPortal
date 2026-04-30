@@ -39,9 +39,7 @@ router.post('/get-signed-url', async (req, res) => {
     
     const signature = cloudinary.utils.api_sign_request({
       timestamp: timestamp,
-      public_id: publicId,
-      file: 'resume.pdf',
-      resource_type: 'raw'
+      public_id: publicId
     }, process.env.CLOUDINARY_API_SECRET);
 
     res.json({

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useApp } from '../../context/AppContext';
 
 interface Props {
@@ -28,6 +29,8 @@ interface ProfileData {
   }>;
   skills?: string[];
   resumeUri?: string;
+  resumeUrl?: string;
+  resumeFileName?: string;
 }
 
 export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
@@ -50,6 +53,24 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
     };
     fetchProfile();
   }, [seekerId, getApplicantProfile]);
+
+  const handleViewResume = useCallback(async () => {
+    const url = profile?.resumeUrl || profile?.resumeUri;
+    if (url) {
+      try {
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Cannot open this resume link');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open resume');
+      }
+    } else {
+      Alert.alert('No Resume', 'This applicant has not uploaded a resume');
+    }
+  }, [profile?.resumeUrl, profile?.resumeUri]);
 
   if (loading) {
     return (
@@ -122,12 +143,19 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
           </View>
         )}
 
-        {profile.resumeUri && (
+        {(profile.resumeUrl || profile.resumeUri) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Resume</Text>
-            <View style={styles.resumeContainer}>
-              <Text style={styles.resumeText}>📄 Resume Attached</Text>
-            </View>
+            <TouchableOpacity style={styles.resumeContainer} onPress={handleViewResume}>
+              <Icon name="picture-as-pdf" size={24} color="#2563EB" />
+              <View style={styles.resumeInfo}>
+                <Text style={styles.resumeText}>
+                  {profile.resumeFileName || '📄 Resume'}
+                </Text>
+                <Text style={styles.viewResumeText}>Tap to view</Text>
+              </View>
+              <Icon name="open-in-new" size={20} color="#2563EB" />
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -217,17 +245,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   resumeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f0f9ff',
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#2563EB',
+  },
+  resumeInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
   resumeText: {
     color: '#2563EB',
     fontSize: 15,
     fontWeight: '600',
+  },
+  viewResumeText: {
+    color: '#2563EB',
+    fontSize: 12,
+    marginTop: 2,
   },
   errorText: {
     fontSize: 16,

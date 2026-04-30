@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { Logo } from '../../components/common/Logo';
 import { useApp } from '../../context/AppContext';
 
 interface Props {
@@ -33,7 +34,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>JobPortal</Text>
+          <Logo size="large" />
           <Text style={styles.subtitle}>Find your dream job or hire talent</Text>
         </View>
 
@@ -103,11 +104,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
     marginTop: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2563EB',
   },
   subtitle: {
     fontSize: 16,

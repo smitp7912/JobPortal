@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Logo } from '../../components/common/Logo';
 import { useApp, Job } from '../../context/AppContext';
 import { formatDate } from '../../utils/webStorage';
 import { Tooltip } from '../../components/common/Tooltip';
@@ -13,6 +14,7 @@ interface Props {
 export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { user, jobs, applications, deleteJob, logout, refreshApplications, refreshJobs } = useApp();
   const [refreshing, setRefreshing] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -77,15 +79,39 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
   }, [deleteJob, applicationCounts]);
 
   const handleLogout = useCallback(async () => {
+    setDropdownVisible(false);
     await logout();
   }, [logout]);
+
+  const handleLogoPress = useCallback(() => {
+    setDropdownVisible(prev => !prev);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome!</Text>
-        <Text style={styles.companyName}>{user?.companyName || 'Company'}</Text>
+        <Logo size="small" color="#fff" onPress={handleLogoPress} />
+        <View style={styles.headerRight}>
+          <Text style={styles.greeting}>Welcome!</Text>
+          <Text style={styles.companyName}>{user?.companyName || 'Company'}</Text>
+        </View>
       </View>
+
+      <Modal
+        visible={dropdownVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setDropdownVisible(false)}>
+          <View style={styles.dropdownMenu}>
+            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
+              <Icon name="logout" size={20} color="#EF4444" />
+              <Text style={styles.dropdownText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
@@ -108,32 +134,20 @@ export const RecruiterDashboardScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.quickActions}>
-        <Tooltip tooltip="Post a new job opening">
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('PostJob')}
-          >
-            <Text style={styles.actionIcon}>➕</Text>
-            <Text style={styles.actionText}>Post New Job</Text>
-          </TouchableOpacity>
-        </Tooltip>
-        <Tooltip tooltip="View all job applications">
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Applications')}
-          >
-            <Text style={styles.actionIcon}>📋</Text>
-            <Text style={styles.actionText}>View Applications</Text>
-          </TouchableOpacity>
-        </Tooltip>
-      </View>
-
-      <View style={styles.logoutContainer}>
-        <Tooltip tooltip="Logout from your account">
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>🚪 Logout</Text>
-          </TouchableOpacity>
-        </Tooltip>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('PostJob')}
+        >
+          <Text style={styles.actionIcon}>➕</Text>
+          <Text style={styles.actionText}>Post New Job</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Applications')}
+        >
+          <Text style={styles.actionIcon}>📋</Text>
+          <Text style={styles.actionText}>View Applications</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.jobsSection}>
@@ -201,6 +215,12 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerRight: {
+    alignItems: 'flex-end',
   },
   greeting: {
     fontSize: 24,
@@ -381,5 +401,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 90,
+    left: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  dropdownText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '500',
   },
 });

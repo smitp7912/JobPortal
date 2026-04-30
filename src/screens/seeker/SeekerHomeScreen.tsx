@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../components/common/JobCard';
+import { Logo } from '../../components/common/Logo';
 import { useApp } from '../../context/AppContext';
 import { CATEGORIES } from '../../data/constants';
 
@@ -57,8 +58,11 @@ export const SeekerHomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hello, {user?.profile?.name || 'Job Seeker'}!</Text>
-        <Text style={styles.subtitle}>Find your dream job</Text>
+        <Logo size="small" color="#fff" />
+        <View style={styles.headerRight}>
+          <Text style={styles.greeting}>Hello, {user?.profile?.name || 'Job Seeker'}!</Text>
+          <Text style={styles.subtitle}>Find your dream job</Text>
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -124,6 +128,12 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerRight: {
+    alignItems: 'flex-end',
   },
   greeting: {
     fontSize: 24,

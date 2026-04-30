@@ -147,6 +147,67 @@ export const api = {
       headers: { 'token': token }
     });
     return response.json();
+  },
+
+  uploadResume: async (token, base64Data, fileName) => {
+    try {
+      const signResponse = await fetch(`${API_URL}/api/upload/get-signed-url`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'token': token 
+        }
+      });
+      
+      if (!signResponse.ok) {
+        const error = await signResponse.json();
+        return { message: error.message || 'Failed to get upload signature' };
+      }
+      
+      const { timestamp, signature, cloudName, apiKey, publicId, uploadUrl } = await signResponse.json();
+      
+      const formData = new FormData();
+      formData.append('file', { uri: base64Data, name: 'resume.pdf', type: 'application/pdf' });
+      formData.append('timestamp', timestamp.toString());
+      formData.append('api_key', apiKey);
+      formData.append('signature', signature);
+      formData.append('public_id', publicId);
+      
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        return { message: 'Cloudinary upload failed: ' + errorText };
+      }
+      
+      const cloudResult = await uploadResponse.json();
+      const cloudUrl = cloudResult.secure_url;
+      
+      const saveResponse = await fetch(`${API_URL}/api/upload/resume`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'token': token 
+        },
+        body: JSON.stringify({ resumeUrl: cloudUrl, fileName })
+      });
+      
+      return saveResponse.json();
+    } catch (error) {
+      console.error('Upload error:', error);
+      return { message: 'Upload failed: ' + error.message };
+    }
+  },
+
+  deleteResume: async (token) => {
+    const response = await fetch(`${API_URL}/api/upload/resume`, {
+      method: 'DELETE',
+      headers: { 'token': token }
+    });
+    return response.json();
   }
 };
 
