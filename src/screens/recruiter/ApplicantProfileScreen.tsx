@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useApp } from '../../context/AppContext';
@@ -33,7 +33,7 @@ interface ProfileData {
   resumeFileName?: string;
 }
 
-export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
+export const ApplicantProfileScreen: React.FC<Props> = ({ route, navigation }) => {
   const { seekerId } = route.params;
   const { getApplicantProfile, getApplicantResumeUrl } = useApp();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -63,22 +63,18 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route }) => {
     try {
       const resumeData = await getApplicantResumeUrl(seekerId);
       const url = resumeData?.resumeUrl || profile.resumeUrl || profile.resumeUri;
+      const fileName = resumeData?.resumeFileName || profile.resumeFileName;
       
       if (!url) {
         Alert.alert('Error', 'Resume URL not available');
         return;
       }
 
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Error', 'Cannot open this resume link');
-      }
+      navigation.navigate('ResumeViewer', { url, fileName });
     } catch (error) {
       Alert.alert('Error', 'Failed to open resume');
     }
-  }, [profile?.resumeUrl, profile?.resumeUri, seekerId, getApplicantResumeUrl]);
+  }, [profile?.resumeUrl, profile?.resumeUri, profile?.resumeFileName, seekerId, getApplicantResumeUrl, navigation]);
 
   if (loading) {
     return (
