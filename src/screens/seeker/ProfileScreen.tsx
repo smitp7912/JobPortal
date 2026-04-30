@@ -73,9 +73,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         
         setUploadingResume(true);
         
-        const resumeFile = new File(file.uri);
-        const base64Data = await resumeFile.base64();
-        
+const resumeFile = new File(file.uri);
+        const arrayBuffer = await resumeFile.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Data = btoa(binary);
         const base64File = `data:application/pdf;base64,${base64Data}`;
         
         const response = await api.uploadResume(user?.token, base64File, fileName);

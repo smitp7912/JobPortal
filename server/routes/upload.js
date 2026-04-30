@@ -93,6 +93,53 @@ router.post('/resume', async (req, res) => {
   }
 });
 
+router.post('/resume/upload', async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+
+    const { token } = req.headers;
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const user = await User.findOne({ token });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { fileData, fileName } = req.body;
+    if (!fileData) {
+      return res.status(400).json({ message: 'No file data provided' });
+    }
+
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    const publicId = `resumes/${user._id}_${timestamp}`;
+
+    const uploadResult = await cloudinary.uploader.upload(fileData, {
+      resource_type: 'raw',
+      public_id: publicId,
+      format: 'pdf',
+      use_filename: false,
+      unique_filename: false,
+    });
+
+    user.profile.resumeUrl = uploadResult.secure_url;
+    user.profile.resumeFileName = fileName || 'resume.pdf';
+    await user.save();
+
+    res.json({
+      message: 'Resume uploaded successfully',
+      resumeUrl: uploadResult.secure_url,
+      resumeFileName: fileName || 'resume.pdf'
+    });
+  } catch (error) {
+    console.error('Error uploading resume:', error);
+    res.status(500).json({ message: 'Error uploading resume', error: error.message });
+  }
+});
+
 router.delete('/resume', async (req, res) => {
   try {
     if (!isDbConnected()) {
