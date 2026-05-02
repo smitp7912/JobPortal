@@ -158,16 +158,17 @@ export const api = {
 
   uploadResume: async (token, base64Data, fileName) => {
     try {
-      const base64Response = await fetch(base64Data);
-      const blob = await base64Response.blob();
-      
-      const formData = new FormData();
-      formData.append('file', blob, fileName);
+      // base64Data is a data URI like "data:application/pdf;base64,..."
+      // Extract the base64 part after the comma
+      const base64Part = base64Data.split(',')[1];
       
       const response = await fetch(`${API_URL}/api/upload/resume/upload`, {
         method: 'POST',
-        headers: { 'token': token },
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          'token': token
+        },
+        body: JSON.stringify({ fileData: base64Part, fileName })
       });
 
       const text = await response.text();
