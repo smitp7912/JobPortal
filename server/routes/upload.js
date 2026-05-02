@@ -164,11 +164,13 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     const uploadResult = await uploadStream(req.file.buffer, {
       resource_type: 'auto',
       public_id: publicId,
+      type: 'upload',
       use_filename: false,
       unique_filename: false,
     });
 
     console.log('Cloudinary success:', uploadResult.secure_url);
+    console.log('File type:', uploadResult.type);
 
     user.profile.resumeUrl = uploadResult.secure_url;
     user.profile.resumeFileName = req.file.originalname || 'resume.pdf';
