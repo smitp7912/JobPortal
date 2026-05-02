@@ -5,9 +5,20 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const User = require('../models/User');
 
+// Configure multer for memory storage with larger limits
 const upload = multer({ 
-  limits: { fileSize: 10 * 1024 * 1024 },
-  storage: multer.memoryStorage()
+  limits: { 
+    fileSize: 10 * 1024 * 1024 // 10MB
+  },
+  storage: multer.memoryStorage(),
+  // Ensure we can parse multipart form data
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
 });
 
 cloudinary.config({
@@ -101,30 +112,38 @@ router.post('/resume', async (req, res) => {
 
 router.post('/resume/upload', upload.single('file'), async (req, res) => {
   try {
-    console.log('Upload request received');
+    console.log('=== Upload Request Start ===');
     console.log('DB connected:', isDbConnected());
     
     if (!isDbConnected()) {
+      console.error('DB not connected');
       return res.status(503).json({ message: 'Database not connected' });
     }
 
     const { token } = req.headers;
+    console.log('Token received:', token ? 'yes' : 'no');
+    
     if (!token) {
+      console.error('No token provided');
       return res.status(401).json({ message: 'No token provided' });
     }
 
     const user = await User.findOne({ token });
     if (!user) {
+      console.error('Invalid token - user not found');
       return res.status(401).json({ message: 'Invalid token' });
     }
 
     console.log('User found:', user._id);
+    console.log('req.file:', req.file);
+    console.log('req.body:', req.body);
 
     if (!req.file) {
-      return res.status(400).json({ message: 'No file provided' });
+      console.error('No file in request');
+      return res.status(400).json({ message: 'No file provided. Make sure to use multipart/form-data' });
     }
 
-    console.log('File received:', req.file.originalname, req.file.size);
+    console.log('File received:', req.file.originalname, req.file.size, 'bytes');
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
@@ -148,14 +167,18 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     user.profile.resumeFileName = req.file.originalname || 'resume.pdf';
     await user.save();
 
+    console.log('=== Upload Request End ===');
+    
     res.json({
       message: 'Resume uploaded successfully',
       resumeUrl: uploadResult.secure_url,
       resumeFileName: req.file.originalname || 'resume.pdf'
     });
   } catch (error) {
+    console.error('=== Upload Error ===');
     console.error('Error uploading resume:', error);
     console.error('Error stack:', error.stack);
+    console.error('================');
     res.status(500).json({ message: 'Error uploading resume', error: error.message, stack: error.stack });
   }
 });

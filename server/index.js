@@ -16,7 +16,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'token', 'Authorization'],
   credentials: true
 }));
-app.use(express.json());
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 console.log('Starting server...');
 console.log('MongoDB URI:', process.env.MONGODB_URI ? 'set' : 'NOT SET');
@@ -29,6 +31,12 @@ app.use('/api/upload', uploadRoutes);
 
 app.get('/', (req, res) => {
   res.send('JobPortal API is running');
+});
+
+// Global error handler (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(500).json({ message: 'Internal server error', error: err.message, stack: err.stack });
 });
 
 const PORT = process.env.PORT || 5000;
