@@ -10,7 +10,12 @@ const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'token', 'Authorization'],
+  credentials: true
+}));
 app.use(express.json());
 
 console.log('Starting server...');
