@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { Readable } = require('stream');
 const User = require('../models/User');
 
 const upload = multer({
@@ -22,6 +23,18 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+// Helper function for stream upload (preserves PDF integrity)
+const uploadStream = (buffer, options) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    
+    Readable.from(buffer).pipe(stream);
+  });
+};
 
 function isDbConnected() {
   return mongoose.connection.readyState === 1;
@@ -145,13 +158,10 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
 
-    // Convert buffer to base64 - force correct MIME type
-    const base64 = req.file.buffer.toString('base64');
-    const dataUri = `data:application/pdf;base64,${base64}`;
-
-    console.log('Uploading to Cloudinary...');
+    // Use stream upload (preserves PDF binary integrity)
+    console.log('Uploading to Cloudinary via stream...');
     
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+    const uploadResult = await uploadStream(req.file.buffer, {
       resource_type: 'auto',
       public_id: publicId,
       use_filename: false,
