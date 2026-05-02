@@ -1,8 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const User = require('../models/User');
+
+const upload = multer({ 
+  limits: { fileSize: 10 * 1024 * 1024 },
+  storage: multer.memoryStorage()
+});
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -93,7 +99,7 @@ router.post('/resume', async (req, res) => {
   }
 });
 
-router.post('/resume/upload', async (req, res) => {
+router.post('/resume/upload', upload.single('file'), async (req, res) => {
   try {
     if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected' });
@@ -109,15 +115,18 @@ router.post('/resume/upload', async (req, res) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    const { fileData, fileName } = req.body;
-    if (!fileData) {
-      return res.status(400).json({ message: 'No file data provided' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file provided' });
     }
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
 
-    const uploadResult = await cloudinary.uploader.upload(fileData, {
+    // Convert buffer to data URI
+    const base64 = req.file.buffer.toString('base64');
+    const dataUri = `data:${req.file.mimetype};base64,${base64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'raw',
       public_id: publicId,
       format: 'pdf',
@@ -126,13 +135,13 @@ router.post('/resume/upload', async (req, res) => {
     });
 
     user.profile.resumeUrl = uploadResult.secure_url;
-    user.profile.resumeFileName = fileName || 'resume.pdf';
+    user.profile.resumeFileName = req.file.originalname || 'resume.pdf';
     await user.save();
 
     res.json({
       message: 'Resume uploaded successfully',
       resumeUrl: uploadResult.secure_url,
-      resumeFileName: fileName || 'resume.pdf'
+      resumeFileName: req.file.originalname || 'resume.pdf'
     });
   } catch (error) {
     console.error('Error uploading resume:', error);

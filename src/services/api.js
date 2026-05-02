@@ -158,24 +158,40 @@ export const api = {
 
   uploadResume: async (token, base64Data, fileName) => {
     try {
+      const base64Response = await fetch(base64Data);
+      const blob = await base64Response.blob();
+      
+      const formData = new FormData();
+      formData.append('file', blob, fileName);
+      
       const response = await fetch(`${API_URL}/api/upload/resume/upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'token': token
-        },
-        body: JSON.stringify({ fileData: base64Data, fileName })
+        headers: { 'token': token },
+        body: formData
       });
 
+      const text = await response.text();
+      
       if (!response.ok) {
-        const error = await response.json();
-        return { message: error.message || 'Failed to upload resume' };
+        console.error('Upload failed with status:', response.status);
+        console.error('Response text:', text);
+        
+        try {
+          const errorJson = JSON.parse(text);
+          return { message: errorJson.message || `Upload failed (${response.status})` };
+        } catch {
+          return { message: `Server error: ${response.status}` };
+        }
       }
 
-      return response.json();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { message: 'Invalid response from server' };
+      }
     } catch (error) {
       console.error('Upload error:', error);
-      return { message: 'Upload failed: ' + error.message };
+      return { message: 'Network error: ' + error.message };
     }
   },
 

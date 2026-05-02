@@ -7,7 +7,10 @@ import { SearchScreen } from '../screens/seeker/SearchScreen';
 import { ApplicationsScreen } from '../screens/seeker/ApplicationsScreen';
 import { SavedJobsScreen } from '../screens/seeker/SavedJobsScreen';
 import { ProfileScreen } from '../screens/seeker/ProfileScreen';
+import { SeekerProfileScreen } from '../screens/seeker/SeekerProfileScreen';
 import { JobDetailsScreen } from '../screens/seeker/JobDetailsScreen';
+
+const ProfileComponent = Platform.OS === 'web' ? SeekerProfileScreen : ProfileScreen;
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -84,7 +87,7 @@ export const SeekerTabs = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileComponent}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
         }}
