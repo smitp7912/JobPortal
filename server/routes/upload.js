@@ -1,8 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const User = require('../models/User');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -93,12 +106,9 @@ router.post('/resume', async (req, res) => {
   }
 });
 
-// Main upload route (JSON with base64 data)
-router.post('/resume/upload', async (req, res) => {
+router.post('/resume/upload', upload.single('file'), async (req, res) => {
   try {
     console.log('=== Upload Request Start ===');
-    console.log('Content-Type:', req.get('Content-Type'));
-    console.log('DB connected:', isDbConnected());
     
     if (!isDbConnected()) {
       console.error('DB not connected');
@@ -106,8 +116,6 @@ router.post('/resume/upload', async (req, res) => {
     }
 
     const { token } = req.headers;
-    console.log('Token provided:', token ? 'yes' : 'no');
-    
     if (!token) {
       console.error('No token provided');
       return res.status(401).json({ message: 'No token provided' });
@@ -115,28 +123,28 @@ router.post('/resume/upload', async (req, res) => {
 
     const user = await User.findOne({ token });
     if (!user) {
-      console.error('Invalid token - user not found');
+      console.error('Invalid token');
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    console.log('User found:', user._id);
+    console.log('User:', user._id);
 
-    const { fileData, fileName } = req.body;
-    console.log('FileName:', fileName);
-    console.log('FileData length:', fileData ? fileData.length : 0);
-
-    if (!fileData) {
-      console.error('No file data provided');
-      return res.status(400).json({ message: 'No file data provided' });
+    if (!req.file) {
+      console.error('No file provided');
+      return res.status(400).json({ message: 'No file provided' });
     }
+
+    console.log('File:', req.file.originalname, req.file.size, 'bytes');
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
 
-    // Add base64 prefix if not present
-    const dataUri = fileData.includes('base64,') ? fileData : `data:application/pdf;base64,${fileData}`;
+    // Convert buffer to base64 data URI
+    const base64 = req.file.buffer.toString('base64');
+    const dataUri = `data:${req.file.mimetype};base64,${base64}`;
 
     console.log('Uploading to Cloudinary...');
+    
     const uploadResult = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'raw',
       public_id: publicId,
@@ -145,25 +153,23 @@ router.post('/resume/upload', async (req, res) => {
       unique_filename: false,
     });
 
-    console.log('Cloudinary upload success:', uploadResult.secure_url);
+    console.log('Cloudinary success:', uploadResult.secure_url);
 
     user.profile.resumeUrl = uploadResult.secure_url;
-    user.profile.resumeFileName = fileName || 'resume.pdf';
+    user.profile.resumeFileName = req.file.originalname || 'resume.pdf';
     await user.save();
 
-    console.log('=== Upload Request End ===');
+    console.log('=== Upload Complete ===');
     
     res.json({
       message: 'Resume uploaded successfully',
       resumeUrl: uploadResult.secure_url,
-      resumeFileName: fileName || 'resume.pdf'
+      resumeFileName: req.file.originalname || 'resume.pdf'
     });
   } catch (error) {
     console.error('=== Upload Error ===');
-    console.error('Error uploading resume:', error);
-    console.error('Error stack:', error.stack);
-    console.error('================');
-    res.status(500).json({ message: 'Error uploading resume', error: error.message, stack: error.stack });
+    console.error(error);
+    res.status(500).json({ message: 'Error uploading resume', error: error.message });
   }
 });
 

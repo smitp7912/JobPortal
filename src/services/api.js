@@ -158,29 +158,26 @@ export const api = {
 
   uploadResume: async (token, base64Data, fileName) => {
     try {
-      // base64Data is a data URI like "data:application/pdf;base64,..."
-      // Extract the base64 part after the comma
-      const base64Part = base64Data.split(',')[1];
+      const formData = new FormData();
+      formData.append('file', {
+        uri: `data:application/pdf;base64,${base64Data}`,
+        type: 'application/pdf',
+        name: fileName || 'resume.pdf'
+      } as any);
       
       const response = await fetch(`${API_URL}/api/upload/resume/upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'token': token
-        },
-        body: JSON.stringify({ fileData: base64Part, fileName })
+        headers: { 'token': token },
+        body: formData
       });
 
       const text = await response.text();
       
       if (!response.ok) {
-        console.error('Upload failed with status:', response.status);
-        console.error('Response text:', text);
-        
+        console.error('Upload failed:', response.status, text);
         try {
           const errorJson = JSON.parse(text);
-          console.error('Full error:', errorJson);
-          return { message: errorJson.message || errorJson.error || `Upload failed (${response.status})` };
+          return { message: errorJson.message || `Upload failed (${response.status})` };
         } catch {
           return { message: `Server error: ${response.status}` };
         }

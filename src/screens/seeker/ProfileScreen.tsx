@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../../components/common/Button';
 import api from '../../services/api';
@@ -62,7 +62,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     Alert.alert('Success', 'Profile updated successfully!');
   };
 
-  const pickResume = async () => {
+const pickResume = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf'],
@@ -73,20 +73,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         
         setUploadingResume(true);
         
-const resumeFile = new File(file.uri);
-        const arrayBuffer = await resumeFile.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64Data = btoa(binary);
-        const base64File = `data:application/pdf;base64,${base64Data}`;
+        const base64Data = await FileSystem.readAsStringAsync(file.uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
         
-        const response = await api.uploadResume(user?.token, base64File, fileName);
+        const response = await api.uploadResume(user?.token, base64Data, fileName);
         
         setUploadingResume(false);
-        console.log(response);
+        console.log('Upload response:', response);
         if (response.resumeUrl) {
           setResumeUrl(response.resumeUrl);
           setResumeFileName(response.resumeFileName);
@@ -97,7 +91,7 @@ const resumeFile = new File(file.uri);
       }
     } catch (error) {
       setUploadingResume(false);
-      console.log(error);
+      console.log('Upload error:', error);
       Alert.alert('Error', 'Failed to upload resume');
     }
   };
