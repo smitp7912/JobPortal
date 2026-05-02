@@ -155,7 +155,8 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error uploading resume:', error);
-    res.status(500).json({ message: 'Error uploading resume', error: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ message: 'Error uploading resume', error: error.message, stack: error.stack });
   }
 });
 

@@ -178,7 +178,8 @@ export const api = {
         
         try {
           const errorJson = JSON.parse(text);
-          return { message: errorJson.message || `Upload failed (${response.status})` };
+          console.error('Full error:', errorJson);
+          return { message: errorJson.message || errorJson.error || `Upload failed (${response.status})` };
         } catch {
           return { message: `Server error: ${response.status}` };
         }
