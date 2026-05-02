@@ -61,7 +61,7 @@ router.post('/get-signed-url', async (req, res) => {
     }
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
-    const publicId = `resumes/${user._id}_${timestamp}`;
+    const publicId = `resumes/${user._id}_${timestamp}.pdf`;
     
     const signature = cloudinary.utils.api_sign_request({
       timestamp: timestamp,
@@ -156,7 +156,7 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     }
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
-    const publicId = `resumes/${user._id}_${timestamp}`;
+    const publicId = `resumes/${user._id}_${timestamp}.pdf`;
 
     // Use stream upload (preserves PDF binary integrity)
     console.log('Uploading to Cloudinary via stream...');
