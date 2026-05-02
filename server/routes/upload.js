@@ -210,8 +210,9 @@ router.get('/resume/url', async (req, res) => {
       return res.status(404).json({ message: 'No resume found' });
     }
 
-    // For viewing, use unsigned URL (no download restrictions)
+    // For viewing, use unsigned URL with download (attachment)
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const resumeFileName = user.profile.resumeFileName || 'resume.pdf';
     let displayUrl = user.profile.resumeUrl;
 
     // Handle PDFs stored with image/upload path (legacy/broken uploads)
@@ -219,12 +220,29 @@ router.get('/resume/url', async (req, res) => {
       const publicId = displayUrl
         .replace(`https://res.cloudinary.com/${cloudName}/image/upload/`, '')
         .replace(`http://res.cloudinary.com/${cloudName}/image/upload/`, '')
-        .replace(/^v\d+\//, '') // Remove version number
+        .replace(/^v\d+\//, '')
         .split('?')[0];
 
-      // Use raw resource type for PDF
       displayUrl = cloudinary.url(publicId, {
         resource_type: 'raw',
+        flags: 'attachment',
+        filename: resumeFileName,
+        sign_url: false,
+        secure: true
+      });
+    }
+    // Handle raw URLs to force download with correct filename
+    else if (displayUrl.includes('/raw/upload/')) {
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(/^v\d+\//, '')
+        .split('?')[0];
+
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'raw',
+        flags: 'attachment',
+        filename: resumeFileName,
         sign_url: false,
         secure: true
       });

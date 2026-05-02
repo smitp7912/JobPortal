@@ -214,6 +214,7 @@ router.get('/seeker/:seekerId/resume-url', async (req, res) => {
 
     let displayUrl = seeker.profile.resumeUrl;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const resumeFileName = seeker.profile.resumeFileName || 'resume.pdf';
     
     // Handle PDFs stored with image/upload path (legacy/broken uploads)
     if (displayUrl.includes('/image/upload/') && displayUrl.toLowerCase().endsWith('.pdf')) {
@@ -226,6 +227,25 @@ router.get('/seeker/:seekerId/resume-url', async (req, res) => {
       const cloudinary = require('cloudinary').v2;
       displayUrl = cloudinary.url(publicId, {
         resource_type: 'raw',
+        flags: 'attachment',
+        filename: resumeFileName,
+        sign_url: false,
+        secure: true
+      });
+    }
+    // Handle raw URLs to force download with correct filename
+    else if (displayUrl.includes('/raw/upload/')) {
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(/^v\d+\//, '')
+        .split('?')[0];
+
+      const cloudinary = require('cloudinary').v2;
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'raw',
+        flags: 'attachment',
+        filename: resumeFileName,
         sign_url: false,
         secure: true
       });
