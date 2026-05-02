@@ -232,6 +232,22 @@ router.get('/seeker/:seekerId/resume-url', async (req, res) => {
       });
     }
 
+    // Handle PDFs stored with image/upload path (legacy/broken uploads)
+    if (displayUrl.includes('/image/upload/') && displayUrl.toLowerCase().endsWith('.pdf')) {
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/image/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/image/upload/`, '')
+        .replace(/^v\d+\//, '')
+        .split('?')[0];
+
+      const cloudinary = require('cloudinary').v2;
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'raw',
+        sign_url: false,
+        secure: true
+      });
+    }
+
     res.json({
       resumeUrl: displayUrl,
       resumeFileName: seeker.profile.resumeFileName

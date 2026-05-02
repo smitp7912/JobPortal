@@ -162,7 +162,7 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     console.log('Uploading to Cloudinary via stream...');
     
     const uploadResult = await uploadStream(req.file.buffer, {
-      resource_type: 'auto',
+      resource_type: 'raw',
       public_id: publicId,
       type: 'upload',
       use_filename: false,
@@ -225,6 +225,22 @@ router.get('/resume/url', async (req, res) => {
       // Generate unsigned URL with auto resource type
       displayUrl = cloudinary.url(publicId, {
         resource_type: 'auto',
+        sign_url: false,
+        secure: true
+      });
+    }
+
+    // Handle PDFs stored with image/upload path (legacy/broken uploads)
+    if (displayUrl.includes('/image/upload/') && displayUrl.toLowerCase().endsWith('.pdf')) {
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/image/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/image/upload/`, '')
+        .replace(/^v\d+\//, '') // Remove version number
+        .split('?')[0];
+
+      // Use raw resource type for PDF
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'raw',
         sign_url: false,
         secure: true
       });
