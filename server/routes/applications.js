@@ -215,23 +215,6 @@ router.get('/seeker/:seekerId/resume-url', async (req, res) => {
     let displayUrl = seeker.profile.resumeUrl;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     
-    // Handle raw URLs - convert to auto type for viewing
-    if (displayUrl.includes('/raw/upload/')) {
-      // Extract public ID
-      const publicId = displayUrl
-        .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
-        .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
-        .split('?')[0];
-
-      // Use unsigned URL with auto resource type
-      const cloudinary = require('cloudinary').v2;
-      displayUrl = cloudinary.url(publicId, {
-        resource_type: 'auto',
-        sign_url: false,
-        secure: true
-      });
-    }
-
     // Handle PDFs stored with image/upload path (legacy/broken uploads)
     if (displayUrl.includes('/image/upload/') && displayUrl.toLowerCase().endsWith('.pdf')) {
       const publicId = displayUrl
