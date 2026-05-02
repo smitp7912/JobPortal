@@ -163,7 +163,7 @@ export const api = {
         uri: `data:application/pdf;base64,${base64Data}`,
         type: 'application/pdf',
         name: fileName || 'resume.pdf'
-      } as any);
+      });
       
       const response = await fetch(`${API_URL}/api/upload/resume/upload`, {
         method: 'POST',

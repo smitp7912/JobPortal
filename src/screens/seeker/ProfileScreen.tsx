@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../../components/common/Button';
 import api from '../../services/api';
@@ -73,20 +72,33 @@ const pickResume = async () => {
         
         setUploadingResume(true);
         
-        const base64Data = await FileSystem.readAsStringAsync(file.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        // Fetch the file and convert to base64
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
         
-        const response = await api.uploadResume(user?.token, base64Data, fileName);
+        // Convert blob to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+        });
+        reader.readAsDataURL(blob);
+        const base64Data = await base64Promise;
+        
+        const uploadResponse = await api.uploadResume(user?.token, base64Data, fileName);
         
         setUploadingResume(false);
-        console.log('Upload response:', response);
-        if (response.resumeUrl) {
-          setResumeUrl(response.resumeUrl);
-          setResumeFileName(response.resumeFileName);
+        console.log('Upload response:', uploadResponse);
+        if (uploadResponse.resumeUrl) {
+          setResumeUrl(uploadResponse.resumeUrl);
+          setResumeFileName(uploadResponse.resumeFileName);
           Alert.alert('Success', 'Resume uploaded successfully!');
         } else {
-          Alert.alert('Error', response.message || 'Failed to upload resume');
+          Alert.alert('Error', uploadResponse.message || 'Failed to upload resume');
         }
       }
     } catch (error) {

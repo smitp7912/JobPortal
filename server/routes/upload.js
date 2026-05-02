@@ -136,19 +136,24 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
 
     console.log('File:', req.file.originalname, req.file.size, 'bytes');
 
+    // Validate file is PDF
+    const ext = req.file.originalname.split('.').pop()?.toLowerCase();
+    if (ext !== 'pdf') {
+      return res.status(400).json({ message: 'Only PDF files are allowed' });
+    }
+
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
 
-    // Convert buffer to base64 data URI
+    // Convert buffer to base64 - force correct MIME type
     const base64 = req.file.buffer.toString('base64');
-    const dataUri = `data:${req.file.mimetype};base64,${base64}`;
+    const dataUri = `data:application/pdf;base64,${base64}`;
 
     console.log('Uploading to Cloudinary...');
     
     const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      resource_type: 'raw',
+      resource_type: 'auto',
       public_id: publicId,
-      format: 'pdf',
       use_filename: false,
       unique_filename: false,
     });
