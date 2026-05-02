@@ -101,6 +101,9 @@ router.post('/resume', async (req, res) => {
 
 router.post('/resume/upload', upload.single('file'), async (req, res) => {
   try {
+    console.log('Upload request received');
+    console.log('DB connected:', isDbConnected());
+    
     if (!isDbConnected()) {
       return res.status(503).json({ message: 'Database not connected' });
     }
@@ -115,9 +118,13 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
+    console.log('User found:', user._id);
+
     if (!req.file) {
       return res.status(400).json({ message: 'No file provided' });
     }
+
+    console.log('File received:', req.file.originalname, req.file.size);
 
     const timestamp = Math.round((new Date()).getTime() / 1000);
     const publicId = `resumes/${user._id}_${timestamp}`;
@@ -126,6 +133,7 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
     const base64 = req.file.buffer.toString('base64');
     const dataUri = `data:${req.file.mimetype};base64,${base64}`;
 
+    console.log('Uploading to Cloudinary...');
     const uploadResult = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'raw',
       public_id: publicId,
@@ -133,6 +141,8 @@ router.post('/resume/upload', upload.single('file'), async (req, res) => {
       use_filename: false,
       unique_filename: false,
     });
+
+    console.log('Cloudinary upload success:', uploadResult.secure_url);
 
     user.profile.resumeUrl = uploadResult.secure_url;
     user.profile.resumeFileName = req.file.originalname || 'resume.pdf';
