@@ -198,19 +198,28 @@ router.get('/resume/url', async (req, res) => {
       return res.status(404).json({ message: 'No resume found' });
     }
 
+    // For viewing, use unsigned URL (no download restrictions)
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const publicId = user.profile.resumeUrl
-      .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
-      .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '');
+    let displayUrl = user.profile.resumeUrl;
 
-    const signedUrl = cloudinary.url(publicId, {
-      resource_type: 'raw',
-      sign_url: true,
-      secure: true
-    });
+    // Handle raw URLs - convert to auto type for viewing
+    if (displayUrl.includes('/raw/upload/')) {
+      // Extract public ID from raw URL
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .split('?')[0]; // Remove query params
+
+      // Generate unsigned URL with auto resource type
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'auto',
+        sign_url: false,
+        secure: true
+      });
+    }
 
     res.json({
-      resumeUrl: signedUrl,
+      resumeUrl: displayUrl,
       resumeFileName: user.profile.resumeFileName
     });
   } catch (error) {

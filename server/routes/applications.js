@@ -189,7 +189,7 @@ router.get('/seeker/:seekerId', async (req, res) => {
   }
 });
 
-// Get signed resume URL for applicant (for recruiter)
+// Get resume URL for applicant (for recruiter)
 router.get('/seeker/:seekerId/resume-url', async (req, res) => {
   try {
     if (!isDbConnected()) {
@@ -212,28 +212,28 @@ router.get('/seeker/:seekerId/resume-url', async (req, res) => {
       return res.status(404).json({ message: 'No resume found' });
     }
 
-    const cloudinary = require('cloudinary').v2;
+    let displayUrl = seeker.profile.resumeUrl;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     
-    const originalUrl = seeker.profile.resumeUrl;
-    
-    let publicId = originalUrl;
-    const urlParts = originalUrl.match(/upload\/(?:v\d+\/)?(.+)$/);
-    if (urlParts && urlParts[1]) {
-      publicId = urlParts[1].replace(/\.[^/.]+$/, '');
+    // Handle raw URLs - convert to auto type for viewing
+    if (displayUrl.includes('/raw/upload/')) {
+      // Extract public ID
+      const publicId = displayUrl
+        .replace(`https://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .replace(`http://res.cloudinary.com/${cloudName}/raw/upload/`, '')
+        .split('?')[0];
+
+      // Use unsigned URL with auto resource type
+      const cloudinary = require('cloudinary').v2;
+      displayUrl = cloudinary.url(publicId, {
+        resource_type: 'auto',
+        sign_url: false,
+        secure: true
+      });
     }
 
-    const timestamp = Math.round(Date.now() / 1000);
-    const signature = cloudinary.utils.api_sign_request({
-      public_id: publicId,
-      timestamp: timestamp,
-      resource_type: 'raw'
-    }, process.env.CLOUDINARY_API_SECRET);
-
-    const signedUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/v${timestamp}/${publicId}?signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
-
     res.json({
-      resumeUrl: signedUrl,
+      resumeUrl: displayUrl,
       resumeFileName: seeker.profile.resumeFileName
     });
   } catch (error) {
