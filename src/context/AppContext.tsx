@@ -39,6 +39,7 @@ interface Application {
   appliedDate: string;
   seekerName?: string;
   seekerEmail?: string;
+  marks?: number | null;
 }
 
 interface AppContextType {
@@ -56,6 +57,7 @@ interface AppContextType {
   updateJob: (jobId: string, job: Partial<Job>) => Promise<any>;
   applyForJob: (jobId: string) => Promise<any>;
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
+  updateApplicationMarks: (applicationId: string, marks: number | null) => Promise<void>;
   getApplicantProfile: (seekerId: string) => any;
   getApplicantResumeUrl: (seekerId: string) => Promise<{ resumeUrl?: string; resumeFileName?: string } | null>;
   deleteJob: (jobId: string) => Promise<void>;
@@ -419,6 +421,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateApplicationMarks = async (applicationId: string, marks: number | null) => {
+    if (!user?.token) return;
+    
+    try {
+      const response = await api.updateApplicationMarks(user.token, applicationId, marks);
+      
+      if (!response.error) {
+        setApplications(prev => 
+          prev.map(app => app._id === applicationId ? { ...app, marks } : app)
+        );
+      }
+    } catch (error) {
+      console.error('Error updating marks:', error);
+    }
+  };
+
   const getApplicantProfile = useCallback(async (seekerId: string) => {
     if (!user?.token) return null;
     
@@ -499,6 +517,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     updateJob,
     applyForJob,
     updateApplicationStatus,
+    updateApplicationMarks,
     getApplicantProfile,
     getApplicantResumeUrl,
     deleteJob,

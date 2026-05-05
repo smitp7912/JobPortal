@@ -120,6 +120,55 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Update application marks (recruiter only)
+router.put('/:id/marks', async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+    
+    const { token } = req.headers;
+    const { marks } = req.body;
+    
+    const user = await verifyToken(token);
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (user.role !== 'recruiter') {
+      return res.status(403).json({ message: 'Only recruiters can update marks' });
+    }
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Verify recruiter owns the job
+    if (application.recruiterId.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (marks !== null && marks !== undefined) {
+      if (marks < 0 || marks > 100) {
+        return res.status(400).json({ message: 'Marks must be between 0 and 100' });
+      }
+      application.marks = marks;
+    } else {
+      application.marks = null;
+    }
+
+    await application.save();
+
+    res.json({
+      message: 'Marks updated successfully',
+      application
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating marks', error: error.message });
+  }
+});
+
 // Update application status (recruiter only)
 router.put('/:id/status', async (req, res) => {
   try {

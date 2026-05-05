@@ -182,6 +182,14 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
               <View style={styles.jobInfo}>
                 <Text style={styles.jobTitle}>Applied for: {job?.title}</Text>
                 <Text style={styles.appliedDate}>Applied on: {formatDate(item.appliedDate)}</Text>
+                <View style={styles.marksRow}>
+                  <Text style={styles.marksLabel}>Marks: </Text>
+                  {item.marks !== null && item.marks !== undefined ? (
+                    <Text style={styles.marksValue}>{item.marks}%</Text>
+                  ) : (
+                    <Text style={styles.marksNotGiven}>Not given</Text>
+                  )}
+                </View>
                 <TouchableOpacity 
                   style={styles.viewJobButton}
                   onPress={() => navigation.navigate('JobDetails', { job: job })}
@@ -207,7 +215,7 @@ export const RecruiterApplicationsScreen: React.FC<Props> = ({ navigation, route
 
               <TouchableOpacity
                 style={styles.viewProfileButton}
-                onPress={() => navigation.navigate('ApplicantProfile', { seekerId: item.seekerId })}
+                onPress={() => navigation.navigate('ApplicantProfile', { seekerId: item.seekerId, applicationId: item._id || item.id, currentMarks: item.marks })}
               >
                 <Text style={styles.viewProfileText}>View Full Profile →</Text>
               </TouchableOpacity>
@@ -363,6 +371,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 4,
+  },
+  marksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  marksLabel: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  marksValue: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  marksNotGiven: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic',
   },
   viewJobButton: {
     marginTop: 8,

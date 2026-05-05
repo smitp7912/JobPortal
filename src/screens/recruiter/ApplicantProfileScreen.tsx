@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useApp } from '../../context/AppContext';
@@ -34,10 +34,12 @@ interface ProfileData {
 }
 
 export const ApplicantProfileScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { seekerId } = route.params;
-  const { getApplicantProfile, getApplicantResumeUrl } = useApp();
+  const { seekerId, applicationId, currentMarks } = route.params;
+  const { getApplicantProfile, getApplicantResumeUrl, updateApplicationMarks } = useApp();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [marksInput, setMarksInput] = useState(currentMarks !== null && currentMarks !== undefined ? String(currentMarks) : '');
+  const [savingMarks, setSavingMarks] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -76,6 +78,30 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route, navigation }) =
     }
   }, [profile?.resumeUrl, profile?.resumeUri, profile?.resumeFileName, seekerId, getApplicantResumeUrl, navigation]);
 
+  const handleSaveMarks = async () => {
+    const marksValue = marksInput.trim() === '' ? null : parseInt(marksInput, 10);
+    
+    if (marksValue !== null && (isNaN(marksValue) || marksValue < 0 || marksValue > 100)) {
+      Alert.alert('Invalid Marks', 'Please enter a number between 0 and 100');
+      return;
+    }
+
+    if (!applicationId) {
+      Alert.alert('Error', 'Application ID not found');
+      return;
+    }
+
+    setSavingMarks(true);
+    try {
+      await updateApplicationMarks(applicationId, marksValue);
+      Alert.alert('Success', 'Marks updated successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update marks. Please try again.');
+    } finally {
+      setSavingMarks(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -100,6 +126,33 @@ export const ApplicantProfileScreen: React.FC<Props> = ({ route, navigation }) =
             <Text style={styles.avatarText}>{profile.name?.[0]?.toUpperCase() || 'U'}</Text>
           </View>
           <Text style={styles.name}>{profile.name || 'Unknown'}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Give Marks (0-100%)</Text>
+          <View style={styles.marksInputContainer}>
+            <TextInput
+              style={styles.marksInput}
+              value={marksInput}
+              onChangeText={setMarksInput}
+              keyboardType="numeric"
+              placeholder="Enter marks (0-100)"
+              placeholderTextColor="#999"
+              maxLength={3}
+            />
+            <TouchableOpacity
+              style={[styles.saveMarksButton, savingMarks && styles.saveMarksButtonDisabled]}
+              onPress={handleSaveMarks}
+              disabled={savingMarks}
+            >
+              <Text style={styles.saveMarksButtonText}>
+                {savingMarks ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {currentMarks !== null && currentMarks !== undefined && (
+            <Text style={styles.currentMarksText}>Current marks: {currentMarks}%</Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -276,5 +329,38 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 40,
+  },
+  marksInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  marksInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  saveMarksButton: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  saveMarksButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveMarksButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  currentMarksText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#666',
   },
 });

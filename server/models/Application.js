@@ -26,7 +26,12 @@ const applicationSchema = new mongoose.Schema({
     default: Date.now
   },
   seekerName: String,
-  seekerEmail: String
+  seekerEmail: String,
+  marks: {
+    type: Number,
+    min: 0,
+    max: 100
+  }
 }, {
   timestamps: true
 });

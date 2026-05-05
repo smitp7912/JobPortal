@@ -103,6 +103,14 @@ export const ApplicationsScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={styles.detailText}>📍 {job.location}</Text>
                   <Text style={styles.detailText}>💰 {job.salary}</Text>
                 </View>
+                <View style={styles.marksRow}>
+                  <Text style={styles.marksLabel}>Rating: </Text>
+                  {item.marks !== null && item.marks !== undefined ? (
+                    <Text style={styles.marksValue}>{item.marks}%</Text>
+                  ) : (
+                    <Text style={styles.marksNotGiven}>Recruiter not reviewed</Text>
+                  )}
+                </View>
                 <Text style={styles.appliedDate}>Applied on: {formatDate(item.appliedDate)}</Text>
               </TouchableOpacity>
             </View>
@@ -195,6 +203,26 @@ const styles = StyleSheet.create({
   appliedDate: {
     fontSize: 12,
     color: '#999',
+  },
+  marksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  marksLabel: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  marksValue: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  marksNotGiven: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic',
   },
   emptyContainer: {
     padding: 40,
