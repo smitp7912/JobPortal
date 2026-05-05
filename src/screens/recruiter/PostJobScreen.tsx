@@ -85,7 +85,7 @@ export const PostJobScreen: React.FC<Props> = ({ navigation, route }) => {
         await postJob({
           title,
           company,
-          companyLogo: `https://placehold.co/100x100/2563EB/FFFFFF?text=${encodeURIComponent(company.charAt(0))}`,
+          companyLogo: `https://ui-avatars.com/api/?name=${encodeURIComponent(company.charAt(0))}&background=2563EB&color=ffffff&size=100&font-size=0.4&bold=true`,
           description,
           location,
           salary,

@@ -73,10 +73,10 @@ const isWeb = typeof window !== 'undefined' && typeof localStorage !== 'undefine
 
 const fixOldPlaceholderUrl = (url: string): string => {
   if (!url) return '';
-  if (url.includes('via.placeholder.com')) {
+  if (url.includes('via.placeholder.com') || url.includes('placehold.co')) {
     const match = url.match(/text=([A-Za-z0-9])/);
     const letter = match ? match[1] : 'J';
-    return `https://placehold.co/100x100/2563EB/FFFFFF?text=${letter}`;
+    return `https://ui-avatars.com/api/?name=${letter}&background=2563EB&color=ffffff&size=100&font-size=0.4&bold=true`;
   }
   return url;
 };
@@ -346,7 +346,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.createJob(user.token, {
         ...jobData,
-        companyLogo: jobData.companyLogo || `https://placehold.co/100x100/2563EB/FFFFFF?text=${encodeURIComponent(jobData.company.charAt(0))}`
+        companyLogo: jobData.companyLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(jobData.company.charAt(0))}&background=2563EB&color=ffffff&size=100&font-size=0.4&bold=true`
       });
       
       if (response.job) {
