@@ -31,24 +31,24 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     }), [jobs, searchQuery, selectedCategory, selectedJobType]
   );
 
-  const getApplicationStatus = useCallback((jobId: string): 'pending' | 'approved' | 'rejected' | null => {
+  const getApplicationData = useCallback((jobId: string) => {
     if (!applications || !Array.isArray(applications)) return null;
     const app = applications.find(app => {
       if (!app || !app.jobId || !app.seekerId) return false;
       const jobIdValue = typeof app.jobId === 'object' ? app.jobId._id || app.jobId.id : app.jobId;
       return jobIdValue === jobId && app.seekerId === user?.id;
     });
-    return app?.status || null;
+    return app || null;
   }, [applications, user?.id]);
 
   const handleApply = useCallback(async (jobId: string) => {
     if (!applications || !Array.isArray(applications)) return;
-    const status = getApplicationStatus(jobId);
-    if (status) return;
+    const appData = getApplicationData(jobId);
+    if (appData?.status) return;
     setApplyingJobId(jobId);
     await applyForJob(jobId);
     setApplyingJobId(null);
-  }, [applyForJob, getApplicationStatus, applications]);
+  }, [applyForJob, getApplicationData, applications]);
 
   const clearFilters = useCallback(() => {
     setSelectedCategory(null);
@@ -98,16 +98,20 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       <FlatList
         data={filteredJobs}
         keyExtractor={(item) => item._id || item.id || ''}
-        renderItem={({ item }) => (
-          <JobCard
-            job={item}
-            onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job: item } })}
-            showApplyButton
-            onApply={() => handleApply(item.id)}
-            applicationStatus={getApplicationStatus(item.id)}
-            isApplying={applyingJobId === item.id}
-          />
-        )}
+        renderItem={({ item }) => {
+          const appData = getApplicationData(item.id);
+          return (
+            <JobCard
+              job={item}
+              onPress={() => navigation.navigate('Applications', { screen: 'JobDetails', params: { job: item } })}
+              showApplyButton
+              onApply={() => handleApply(item.id)}
+              applicationStatus={appData?.status || null}
+              applicationMarks={appData?.marks ?? null}
+              isApplying={applyingJobId === item.id}
+            />
+          );
+        }}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

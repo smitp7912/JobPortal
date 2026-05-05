@@ -11,6 +11,7 @@ interface JobCardProps {
   showApplyButton?: boolean;
   onApply?: () => void;
   applicationStatus?: 'pending' | 'approved' | 'rejected' | null;
+  applicationMarks?: number | null;
   isApplying?: boolean;
   isSaved?: boolean;
   onSave?: () => void;
@@ -22,6 +23,7 @@ const JobCardComponent: React.FC<JobCardProps> = ({
   showApplyButton,
   onApply,
   applicationStatus,
+  applicationMarks,
   isApplying,
   isSaved,
   onSave,
@@ -84,7 +86,18 @@ const JobCardComponent: React.FC<JobCardProps> = ({
       <Text style={styles.description} numberOfLines={2}>{job.description}</Text>
 
       <View style={styles.footer}>
-        <Text style={styles.postedDate}>Posted: {job.postedDate ? formatDate(job.postedDate) : 'N/A'}</Text>
+        <View style={styles.footerLeft}>
+          <Text style={styles.postedDate}>Posted: {job.postedDate ? formatDate(job.postedDate) : 'N/A'}</Text>
+          {applicationStatus && (
+            <View style={styles.marksContainer}>
+              {applicationMarks != null ? (
+                <Text style={styles.marksText}>⭐ {applicationMarks}%</Text>
+              ) : (
+                <Text style={styles.marksNotGiven}>Recruiter not reviewed</Text>
+              )}
+            </View>
+          )}
+        </View>
         {showApplyButton && onApply && (
           <TouchableOpacity 
             style={[styles.applyButton, getApplyButtonStyle(), isApplying && styles.applyingButton]} 
@@ -171,9 +184,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  footerLeft: {
+    flex: 1,
+  },
   postedDate: {
     fontSize: 12,
     color: '#999',
+  },
+  marksContainer: {
+    marginTop: 6,
+  },
+  marksText: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  marksNotGiven: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
   applyButton: {
     backgroundColor: '#2563EB',

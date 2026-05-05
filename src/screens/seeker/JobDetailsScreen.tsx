@@ -16,6 +16,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user, applyForJob, applications, saveJob } = useApp();
   const [isApplying, setIsApplying] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<string>('');
 
   const job = useMemo(() => {
     if (!rawJob) return null;
@@ -24,6 +25,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       companyLogo: getValidLogoUrl(rawJob.companyLogo)
     };
   }, [rawJob]);
+
+  const getJobId = (jobOrId: any): string => {
+    if (!jobOrId) return '';
+    if (typeof jobOrId === 'object') return jobOrId._id || jobOrId.id || '';
+    return jobOrId;
+  };
+
+  useEffect(() => {
+    const newJobId = getJobId(job);
+    setCurrentJobId(newJobId);
+  }, [job]);
 
   useEffect(() => {
     console.log('JobDetails rawJob.companyLogo:', rawJob?.companyLogo);
@@ -43,22 +55,22 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     return url;
   }, [job.companyLogo]);
 
-  const applicationStatus = useMemo((): 'pending' | 'approved' | 'rejected' | null => {
-    if (!applications || !Array.isArray(applications)) return null;
-    const app = applications.find(app => {
+  const applicationData = useMemo(() => {
+    if (!applications || !Array.isArray(applications) || !currentJobId) return null;
+    return applications.find(app => {
       if (!app || !app.jobId || !app.seekerId) return false;
       const jobIdValue = typeof app.jobId === 'object' ? app.jobId._id || app.jobId.id : app.jobId;
-      return jobIdValue === job.id && app.seekerId === user?.id;
+      return jobIdValue === currentJobId && app.seekerId === user?.id;
     });
-    return app?.status || null;
-  }, [applications, job.id, user?.id]);
+  }, [applications, currentJobId, user?.id]);
 
+  const applicationStatus = applicationData?.status || null;
   const isApplied = applicationStatus !== null;
   const isDisabled = applicationStatus !== null && applicationStatus !== undefined;
 
   const isSaved = useMemo(() => 
-    user?.profile?.savedJobs?.includes(job.id) || false
-  , [user?.profile?.savedJobs, job.id]);
+    user?.profile?.savedJobs?.includes(currentJobId) || false
+  , [user?.profile?.savedJobs, currentJobId]);
 
   const getButtonText = () => {
     switch (applicationStatus) {
@@ -78,6 +90,24 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return '#10B981';
+      case 'rejected': return '#EF4444';
+      case 'pending': return '#F59E0B';
+      default: return '#666';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'approved': return 'Accepted';
+      case 'rejected': return 'Rejected';
+      case 'pending': return 'Pending Review';
+      default: return 'Unknown';
+    }
+  };
+
   const handleApply = async () => {
     if (isApplying || isDisabled) return;
     if (!user?.token) {
@@ -85,7 +115,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     setIsApplying(true);
-    const response: any = await applyForJob(job.id);
+    const response: any = await applyForJob(currentJobId);
     setIsApplying(false);
     if (response && typeof response === 'object' && 'message' in response) {
       const message = response.message as string;
@@ -106,7 +136,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       Alert.alert('Error', 'Please login to save jobs');
       return;
     }
-    await saveJob(job.id);
+    await saveJob(currentJobId);
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -165,6 +195,25 @@ export const JobDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.infoText}>Posted: {formatDate(job.postedDate)}</Text>
           </View>
         </View>
+
+        {isApplied && (
+          <View style={styles.applicationStatusSection}>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Status: </Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(applicationStatus) }]}>
+                <Text style={styles.statusBadgeText}>{getStatusText(applicationStatus)}</Text>
+              </View>
+            </View>
+            <View style={styles.marksRow}>
+              <Text style={styles.marksLabel}>Rating: </Text>
+              {applicationData?.marks != null && applicationData?.marks !== undefined ? (
+                <Text style={styles.marksValue}>{applicationData.marks}%</Text>
+              ) : (
+                <Text style={styles.marksNotGiven}>Recruiter not reviewed</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Job Description</Text>
@@ -257,6 +306,50 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
   },
+  applicationStatusSection: {
+    backgroundColor: '#fff',
+    marginTop: 10,
+    padding: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statusLabel: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  marksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  marksLabel: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '600',
+  },
+  marksValue: {
+    fontSize: 15,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  marksNotGiven: {
+    fontSize: 15,
+    color: '#999',
+    fontStyle: 'italic',
+  },
   section: {
     backgroundColor: '#fff',
     marginTop: 10,
@@ -323,6 +416,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   applyButton: {
+    backgroundColor: '#2563EB',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 8,
