@@ -221,6 +221,34 @@ export const SeekerProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChange={handleFileSelect}
                 style={styles.fileInput}
               />
+              {resumeUrl && (
+                <TouchableOpacity 
+                  style={styles.viewResumeButton} 
+                  onPress={async () => {
+                    try {
+                      const response = await fetch(resumeUrl);
+                      if (!response.ok) {
+                        throw new Error('Failed to fetch file');
+                      }
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      
+                      const link = document.createElement('a');
+                      link.href = blobUrl;
+                      link.download = resumeFileName || 'resume.pdf';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      
+                      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to download resume');
+                    }
+                  }}
+                >
+                  <Text style={styles.viewResumeButtonText}>📥 Download Resume</Text>
+                </TouchableOpacity>
+              )}
               {selectedFile && (
                 <TouchableOpacity style={styles.uploadButton} onPress={uploadResume}>
                   <Text style={styles.uploadButtonText}>Upload Selected File</Text>
@@ -467,6 +495,18 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#2563EB',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  viewResumeButton: {
+    backgroundColor: '#2563EB',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewResumeButtonText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },

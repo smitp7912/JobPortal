@@ -208,11 +208,20 @@ const pickResume = async () => {
               <Text style={styles.uploadingText}>Uploading resume...</Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.uploadButton} onPress={pickResume}>
-              <Text style={styles.uploadButtonText}>
-                {resumeUrl ? '📄 Resume Uploaded' : '📤 Upload Resume (PDF)'}
-              </Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={resumeUrl ? styles.viewResumeButton : styles.uploadButton} onPress={resumeUrl ? () => navigation.navigate('ResumeViewer', { url: resumeUrl, fileName: resumeFileName }) : pickResume}>
+                <Text style={resumeUrl ? styles.viewResumeButtonText : styles.uploadButtonText}>
+                  {resumeUrl ? '📄 View Resume' : '📤 Upload Resume (PDF)'}
+                </Text>
+              </TouchableOpacity>
+              {!resumeUrl && (
+                <TouchableOpacity style={styles.uploadButton} onPress={pickResume}>
+                  <Text style={styles.uploadButtonText}>
+                    {resumeUrl ? '📄 Resume Uploaded' : '📤 Upload Resume (PDF)'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
           {resumeFileName && (
             <Text style={styles.fileNameText}>{resumeFileName}</Text>
@@ -440,6 +449,18 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#2563EB',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  viewResumeButton: {
+    backgroundColor: '#2563EB',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewResumeButtonText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },

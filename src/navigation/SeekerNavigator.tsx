@@ -9,6 +9,7 @@ import { SavedJobsScreen } from '../screens/seeker/SavedJobsScreen';
 import { ProfileScreen } from '../screens/seeker/ProfileScreen';
 import { SeekerProfileScreen } from '../screens/seeker/SeekerProfileScreen';
 import { JobDetailsScreen } from '../screens/seeker/JobDetailsScreen';
+import { ResumeViewerScreen } from '../screens/recruiter/ResumeViewerScreen';
 
 const ProfileComponent = Platform.OS === 'web' ? SeekerProfileScreen : ProfileScreen;
 
@@ -33,6 +34,17 @@ const SavedStack = () => (
       name="JobDetails" 
       component={JobDetailsScreen}
       options={{ headerShown: true, title: 'Job Details' }}
+    />
+  </Stack.Navigator>
+);
+
+const ProfileStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ProfileMain" component={ProfileComponent} />
+    <Stack.Screen 
+      name="ResumeViewer" 
+      component={ResumeViewerScreen}
+      options={{ headerShown: true, title: 'Resume' }}
     />
   </Stack.Navigator>
 );
@@ -87,7 +99,7 @@ export const SeekerTabs = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileComponent}
+        component={ProfileStack}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
         }}
